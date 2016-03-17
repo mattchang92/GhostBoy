@@ -2,6 +2,8 @@
 
 Personal project to create a DMG Emulator/Interpreter in C++. Msotly to learn about both emulation and C++.
 
+Currently passes Blargg's CPU Instruction test. A few games play, a lot don't.
+
 Created in Visual Studio 2015. Requires SDL2.
 
 https://www.libsdl.org/download-2.0.php
