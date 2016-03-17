@@ -1,6 +1,6 @@
 # GhostBoy
 
-Personal project to create a DMG Emulator/Interpreter in C++. Msotly to learn about both emulation and C++.
+Personal project to create a DMG Emulator/Interpreter in C++. Mostly to learn about both emulation and C++.
 
 Currently passes Blargg's CPU Instruction test. A few games play, a lot don't.
 
