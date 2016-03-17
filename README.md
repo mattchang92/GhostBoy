@@ -10,7 +10,7 @@ https://www.libsdl.org/download-2.0.php
 
 # License
 
-    Copyright (C) 2015  GhostSonic
+    Copyright (C) 2015 GhostSonic
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
