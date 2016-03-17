@@ -22,13 +22,17 @@ void Input::pollControl(uint8_t data) {
 	else if ((P1Data & 0x20) == 0) {
 		controlMode = true;
 	}
+}
+
+uint8_t Input::recieveData() {
+	// TODO: Handle joypad interrupt (possibly) and STOP instruction
 	uint8_t controlBits = 0;
 	const uint8_t *keys = SDL_GetKeyboardState(NULL);
 
 	// P14
 	if (!controlMode) {
 		// Right
-		controlBits |= (keys[SDL_SCANCODE_RIGHT] ?  0 : 1 ) << 0;
+		controlBits |= (keys[SDL_SCANCODE_RIGHT] ? 0 : 1) << 0;
 		// Left
 		controlBits |= (keys[SDL_SCANCODE_LEFT] ? 0 : 1) << 1;
 		// Up
@@ -49,8 +53,5 @@ void Input::pollControl(uint8_t data) {
 	}
 	P1Data &= 0xF0;
 	P1Data |= controlBits;
-}
-
-uint8_t Input::recieveData() {
 	return P1Data;
 }
