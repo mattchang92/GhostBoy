@@ -87,7 +87,7 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 }
 
 uint8_t GBGPU::recieveData(uint16_t address) {
-	uint8_t returnData;
+	uint8_t returnData = 0;
 
 	if (address >= 0x8000 && address <= 0x9FFF) {
 		returnData = VRAM[address - 0x8000];
