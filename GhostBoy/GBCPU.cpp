@@ -1084,6 +1084,8 @@ void GBCPU::decodeExecute(uint8_t instruction) {
 		// RET
 		case 0xC9:
 			ret(true);
+			// Weird special case where non-conditional ret is always 16, not 20
+			lastCycleCount = 16;
 			break;
 		// RET CC
 		case 0xC0:
@@ -1683,6 +1685,7 @@ uint16_t GBCPU::ALU16bitDec(uint16_t input){
 
 void GBCPU::jp(bool condition){
 	if (condition) {
+		lastCycleCount = 16;	// 16 if true
 		reg_PC = mainMem->readWord(reg_PC);
 	}
 	else {
@@ -1692,6 +1695,7 @@ void GBCPU::jp(bool condition){
 
 void GBCPU::jr(bool condition){
 	if (condition) {
+		lastCycleCount = 12;	// 12 cycles if it happens
 		reg_PC = reg_PC + (int8_t)mainMem->readByte(reg_PC);
 		reg_PC++;	// I don't get why this is necessary
 	}
@@ -1701,6 +1705,7 @@ void GBCPU::jr(bool condition){
 }
 void GBCPU::call(bool condition) {
 	if (condition) {
+		lastCycleCount = 24;	// 24 cycles if true
 		reg_SP -= 2;
 		mainMem->writeWord(reg_SP, reg_PC + 2);
 		jp(true);
@@ -1717,6 +1722,7 @@ void GBCPU::rst(uint8_t n) {
 
 void GBCPU::ret(bool condition){
 	if (condition) {
+		lastCycleCount = 20;
 		reg_PC = mainMem->readWord(reg_SP);
 		reg_SP += 2;
 	}
