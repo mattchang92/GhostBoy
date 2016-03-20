@@ -86,9 +86,6 @@ void Timer::updateTimers(int lastCycleCount) {
 			}
 		}
 	}
-	else {
-		TIMA++;
-	}
 }
 
 int Timer::clockRate(int code) {
