@@ -20,7 +20,6 @@ private:
 	uint8_t TIMA = 0x00;
 	uint8_t TMA = 0x00;
 	uint8_t TAC = 0x00;
-	uint8_t IF = 0x00;
 	// Cycle counters for the two timers
 	int DIVCycleCount = 0;
 	int TIMACycleCount = 0;
