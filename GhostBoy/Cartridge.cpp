@@ -6,6 +6,7 @@ Cartridge::Cartridge(string romPath, bool bootStrap) : romFileStream(romPath, io
 {
 	// Make sure rom bank is 1
 	romBankNumber = 1;
+
 	if (romFileStream.is_open()) {
 		// Create the data array
 		int romSize = (int)romFileStream.tellg();
@@ -108,18 +109,10 @@ void Cartridge::sendData(uint16_t address, uint8_t input){
 		if ((input & 0x1F) == 0) {
 			input = 1;
 		}
-		romBankNumber &= 0xE0;	// Clear lower 5 bits
-		romBankNumber |= input & 0x1F;
+		romBankNumber = input & 0x1F;
 	}
 	else if (address >= 0x4000 && address <= 0x5FFF) {
-		// romRamMode: false = rom, true = ram
-		if (romRamMode == false) {
-			ramBankNumber = input & 0x3;
-		}
-		else if (romRamMode == true) {	// Little redundant
-			romBankNumber &= 0x1F;	// Clear upper bits
-			romBankNumber |= ((input & 0x3) << 6);
-		}
+		romRamBankNumber = input & 0x03;
 	}
 	else if (address >= 0x6000 && address <= 0x7FFF) {
 		if (input == 0x00) {
@@ -130,8 +123,14 @@ void Cartridge::sendData(uint16_t address, uint8_t input){
 		}
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
+		// romRamMode: false = rom, true = ram
 		if (ramEnable) {
-			extRam[ramBankNumber][address - 0xA000] = input;
+			if (romRamMode == true) {
+				extRam[romRamBankNumber][address - 0xA000] = input;
+			}
+			else {
+				extRam[0][address - 0xA000] = input;
+			}
 		}
 	}
 }
@@ -143,12 +142,25 @@ uint8_t Cartridge::recieveData(uint16_t address)
 			return romData[address];
 		}
 		else {
-			return romData[(0x4000 * romBankNumber) + (address - 0x4000)];
+			// romRamMode: false = rom, true = ram
+			if (romRamMode == true) {
+				return romData[(0x4000 * (romBankNumber)) + (address - 0x4000)];
+			}
+			else {
+				// User upper 2 bits on this
+				return romData[(0x4000 * ((romRamBankNumber << 5)|romBankNumber)) + (address - 0x4000)];
+			}
 		}
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
+		// romRamMode: false = rom, true = ram
 		if (ramEnable) {
-			return extRam[ramBankNumber][address - 0xA000];
+			if (romRamMode == true) {
+				return extRam[romRamBankNumber][address - 0xA000];
+			}
+			else {
+				return extRam[0][address - 0xA000];
+			}
 		}
 		else {
 			return 0x00;

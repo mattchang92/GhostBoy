@@ -27,7 +27,7 @@ private:
 	// MBC1 registers
 	bool ramEnable;
 	int romBankNumber;
-	int ramBankNumber;
+	int romRamBankNumber = 0;
 	bool romRamMode;
 
 	// Dynamically allocated data pointers
