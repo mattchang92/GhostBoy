@@ -151,7 +151,7 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					//GPUCycleCount = 0;
 					LY++;
 					
-					if (LY == 143) {
+					if (LY == 144) {
 						mode = 1;	// Switch to vblank
 						if ((STAT & mode1) != 0) {
 							interrupts->IF |= (0xE0 | LCDCint);
@@ -200,6 +200,8 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					if ((STAT & mode0) != 0) {
 						interrupts->IF |= (0xE0 | LCDCint);
 					}
+					// Render scanline before going to hblank
+					renderScanline();
 				}
 				break;
 			default:
@@ -229,55 +231,10 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 	// Necessary surfaces
 	//SDL_Surface *mainSurface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 	SDL_Surface *mainSurface = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
-	SDL_Surface *background = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 	
-	// Background drawing
-	for (int i = 0; i < 32; i++) {
-		for (int j = 0; j < 32; j++) {
-			uint16_t tileLocation = 0;
-			// Map could be 0x9800 or 0x9C00
-			if ((LCDC & 0x08) != 0) {
-				tileLocation = recieveData(0x9C00 + (i * 32) + j);
-			}
-			else {
-				tileLocation = recieveData(0x9800 + (i * 32) + j);
-			}
-			if ((LCDC & 0x10) != 0) {
-				drawTile(0x8000 + (tileLocation << 4), background, j*8, i*8, true, false, false, BGP);
-			}
-			else {
-				tileLocation = (128 + (int16_t)tileLocation) & 0xff;
-				drawTile(0x8800 + (tileLocation << 4), background, j*8, i*8, true, false, false, BGP);
-			}
-		}
-	}
 	// Copy background surface to the main surface
-	// Scrolling handler
-	// TODO: Account for real screen size?
-	SDL_Rect backgroundRect;
-	backgroundRect.w = 256;
-	backgroundRect.h = 256;
-	backgroundRect.x = SCX;
-	backgroundRect.y = SCY;
+	SDL_BlitSurface(backgroundGlobal, NULL, mainSurface, NULL);
 
-	SDL_BlitSurface(background, &backgroundRect, mainSurface, NULL);
-	// Overflow area
-	
-	SDL_Rect overFlowRect;
-	overFlowRect.w = 256;
-	overFlowRect.h = 256;
-
-	overFlowRect.x = -(256 - SCX);
-	overFlowRect.y = -(256 - SCY);
-	SDL_BlitSurface(background, &overFlowRect, mainSurface, NULL);
-	overFlowRect.x = SCX;
-	overFlowRect.y = -(256 - SCY);
-	SDL_BlitSurface(background, &overFlowRect, mainSurface, NULL);
-	overFlowRect.x = -(256 - SCX);
-	overFlowRect.y = SCY;
-	SDL_BlitSurface(background, &overFlowRect, mainSurface, NULL);
-	
-	SDL_FreeSurface(background);	// Free it
 	// Window
 	if ((LCDC & 0x20) != 0) {
 		SDL_Surface *window = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
@@ -357,14 +314,6 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 void GBGPU::drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, bool background, bool horizontalFlip, bool verticalFlip, uint8_t pallete) {
 	uint32_t *surfacePixels = (uint32_t*)inSurface->pixels;
 	uint8_t tile[16];
-	// Black and white pallete
-	//uint32_t colors[4] = {0xFFFFFF, 0xD3D3D3, 0xA9A9A9, 0x000000};
-	// Greenish pallete (Wiki said so)
-	//uint32_t colors[4] = {0x9BBC0F, 0x8BAC0F, 0x306230, 0x0F380F};
-	// Whatever BGB used
-	uint32_t colors[4] = {0xE0F8D0, 0x88C070, 0x346856, 0x081820};
-	// Gimmicky Purple
-	//uint32_t colors[4] = {0x946DFF, 0x7442FF, 0x3F00FF, 0x170063};
 
 	for (int i = 0; i < 16; i++) {
 		tile[i] = recieveData(address + i);
@@ -422,5 +371,78 @@ void GBGPU::drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, boo
 			tile[i] >>= 1;
 			tile[i + 1] >>= 1;
 		}
+	}
+}
+
+void GBGPU::renderScanline() {
+	// Declare starting X and Y position
+	int x = SCX;
+	int y = SCY + LY;
+	// Wrap around Y if over 256
+	if (y >= 256) {
+		y -= 256;
+	}
+	// Declare BG pixels pointer/array
+	uint32_t *globalBGPixels = (uint32_t*)backgroundGlobal->pixels;
+
+	for (int i = 0; i < 160; i++, x++) {
+		// Wrap around
+		if (x >= 256) {
+			x -= 256;
+		}
+
+		// Get the current tile number based on this
+		int tileNum = (x / 8) + ((y / 8) * 32);
+
+		// Determine the location in memory of the tile
+		uint16_t tileLocation = 0x0000;
+
+		if ((LCDC & 0x08) != 0) {
+			tileLocation = recieveData(0x9C00 + tileNum);
+		}
+		else {
+			tileLocation = recieveData(0x9800 + tileNum);
+		}
+		if ((LCDC & 0x10) != 0) {
+			tileLocation = 0x8000 + (tileLocation << 4);
+		}
+		else {
+			tileLocation = (128 + (int16_t)tileLocation) & 0xff;
+			tileLocation = 0x8800 + (tileLocation << 4);
+		}
+
+		// Use simple modulo to get pixel number of tile
+		int pixelX = x % 8;
+		int pixelY = y % 8;
+
+		int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1)|
+			((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
+
+		uint32_t color = 0;
+		switch (pixelData) {
+			case 3:
+				// Black
+				color = colors[(BGP >> 6) & 0x3];
+				break;
+			case 2:
+				// Dark Gray
+				color = colors[(BGP >> 4) & 0x3];
+				break;
+			case 1:
+				// Light Gray
+				color = colors[(BGP >> 2) & 0x3];
+				break;
+			case 0:
+				// white, only do this for background tiles
+				color = colors[(BGP)& 0x3];
+				//surfacePixels[drawX + (drawY * inSurface->h)] = 0x636F57;
+				break;
+			default:
+				break;
+		}
+		// Write to background surface
+		int drawX = i;
+		int drawY = LY;
+		globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = color;
 	}
 }

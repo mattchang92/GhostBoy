@@ -26,6 +26,10 @@ private:
 	// Private drawing methods
 	// Draw Tile: Address of the tile, surface to draw tile to, X and Y coordinates of where to draw to on surface
 	void drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, bool background, bool horizontalFlip, bool verticalFlip, uint8_t pallete);
+	// Renders one scanline of the background (at least for now, not sure about sprites)
+	// Global backgroud image
+	SDL_Surface *backgroundGlobal = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
+	void renderScanline();
 	// Cycle Counter
 	int GPUCycleCount = 0;
 	// GPU Held memory
@@ -43,5 +47,15 @@ private:
 	uint8_t OBP1 = 0;
 	uint8_t WY = 0;
 	uint8_t WX = 0;
+
+	// Pallete color
+	// Black and white pallete
+	//uint32_t colors[4] = {0xFFFFFF, 0xD3D3D3, 0xA9A9A9, 0x000000};
+	// Greenish pallete (Wiki said so)
+	//uint32_t colors[4] = {0x9BBC0F, 0x8BAC0F, 0x306230, 0x0F380F};
+	// Whatever BGB used
+	uint32_t colors[4] = { 0xE0F8D0, 0x88C070, 0x346856, 0x081820 };
+	// Gimmicky Purple
+	//uint32_t colors[4] = {0x946DFF, 0x7442FF, 0x3F00FF, 0x170063};
 };
 
