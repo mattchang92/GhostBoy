@@ -124,7 +124,7 @@ void GBCPU::executeOneInstruction() {
 		IME = IMEhold;
 	}
 	// Vblank
-	if ((mainMem->readByte(IF) & vBlankByte) != 0 && (mainMem->readByte(IE) & vBlankByte)) {
+	if ((mainMem->readByte(IF) & vBlankByte) != 0 && (mainMem->readByte(IE) & vBlankByte) != 0) {
 		halt = false;
 		if (IME) {
 			IMEhold = false;
@@ -134,7 +134,7 @@ void GBCPU::executeOneInstruction() {
 		}
 	}
 	// LCDC
-	else if ((mainMem->readByte(IF) & LCDCByte) != 0 && (mainMem->readByte(IE) & LCDCByte)) {
+	else if ((mainMem->readByte(IF) & LCDCByte) != 0 && (mainMem->readByte(IE) & LCDCByte) != 0) {
 		halt = false;
 		if (IME) {
 			IMEhold = false;
@@ -144,7 +144,7 @@ void GBCPU::executeOneInstruction() {
 		}
 	}
 	// Timer
-	else if ((mainMem->readByte(IF) & timerOverflowByte) != 0 && (mainMem->readByte(IE) & timerOverflowByte)) {
+	else if ((mainMem->readByte(IF) & timerOverflowByte) != 0 && (mainMem->readByte(IE) & timerOverflowByte) != 0) {
 		halt = false;
 		if (IME) {
 			IMEhold = false;
@@ -164,7 +164,7 @@ void GBCPU::executeOneInstruction() {
 		}
 	}
 	// Button press
-	else if ((mainMem->readByte(IF) & buttonpressByte) != 0 && (mainMem->readByte(IE) & buttonpressByte)) {
+	else if ((mainMem->readByte(IF) & buttonpressByte) != 0 && (mainMem->readByte(IE) & buttonpressByte) != 0) {
 		halt = false;
 		if (IME) {
 			IMEhold = false;
