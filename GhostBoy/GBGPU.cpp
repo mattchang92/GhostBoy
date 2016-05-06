@@ -376,21 +376,13 @@ void GBGPU::drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, boo
 
 void GBGPU::renderScanline() {
 	// Declare starting X and Y position
-	int x = SCX;
-	int y = SCY + LY;
-	// Wrap around Y if over 256
-	if (y >= 256) {
-		y -= 256;
-	}
+	uint8_t x = SCX;
+	uint8_t y = SCY + LY;
+
 	// Declare BG pixels pointer/array
 	uint32_t *globalBGPixels = (uint32_t*)backgroundGlobal->pixels;
 
 	for (int i = 0; i < 160; i++, x++) {
-		// Wrap around
-		if (x >= 256) {
-			x -= 256;
-		}
-
 		// Get the current tile number based on this
 		int tileNum = (x / 8) + ((y / 8) * 32);
 
