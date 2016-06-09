@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 			gbgpu.updateGPUTimer(CPU.getLastCycleCount());
 
 			//TEMP
-			mainMem.writeByte(0xFF00, 0xFF);
+			//mainMem.writeByte(0xFF00, 0xFF);
 		}
 		// Stuff to run after a vblank occurs
 		gbgpu.newVblank = false;
