@@ -108,10 +108,10 @@ void GBCPU::resetGBNoBios() {
 }
 
 void GBCPU::executeOneInstruction() {
-	if (reg_PC == 0x294) {
+	if (reg_PC == 0x2377) {
 		//printf("break ");
 	}
-	if (reg_PC == 0xC05A) {
+	if (reg_PC == 0x2379) {
 		//printf("breakA ");
 	}
 	// ISR
@@ -130,6 +130,9 @@ void GBCPU::executeOneInstruction() {
 			IMEhold = false;
 			IME = false;
 			mainMem->writeByte(IF, mainMem->readByte(IF) & ~vBlankByte);
+			//cout << "Cycles since last vblank int: " << cycleCounter << "\n";
+			cycleCounter = 0;
+			bool debug = false;
 			rst(0x40);
 		}
 	}
@@ -176,9 +179,15 @@ void GBCPU::executeOneInstruction() {
 
 	// Execution
 	if (!halt) {
-		decodeExecute(mainMem->readByte(reg_PC));
+		uint8_t opcode = mainMem->readByte(reg_PC);
+		//cout << hex << "PC: 0x" << reg_PC << " SP: 0x" << reg_SP << " Opcode 0x" << int(opcode) << "\n" << dec;
+		decodeExecute(opcode);
 		instructCount++;
 	}
+	else {
+		lastCycleCount = 4;	// Say 4 cycles passed due to halt
+	}
+	cycleCounter += getLastCycleCount();
 }
 
 void GBCPU::decodeExecute(uint8_t instruction) {
@@ -939,8 +948,11 @@ void GBCPU::decodeExecute(uint8_t instruction) {
 			break;
 		// HALT
 		case 0x76:
+			//cout << "Halt\n";
 			halt = true;
-			reg_PC++;
+			if (!IME){
+				//reg_PC++;
+			}
 			break;
 		// STOP
 		case 0x10:

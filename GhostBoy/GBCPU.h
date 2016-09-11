@@ -104,5 +104,7 @@ private:
 	void BIT(uint8_t input, int bit);
 	uint8_t SET(uint8_t input, int bit);
 	uint8_t RES(uint8_t input, int bit);
+
+	int cycleCounter = 0;
 };
 

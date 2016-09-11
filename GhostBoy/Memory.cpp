@@ -3,13 +3,9 @@
 
 
 
-Memory::Memory(Cartridge &gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input) : gbCart(&gbCart), 
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input) : gbCart(gbCart), 
 interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input)
 {
-	// Temp make all elements 0
-	for (int i = 0; i < sizeof(tempMem); i++) {
-		tempMem[i] = 0;
-	}
 }
 
 
@@ -19,7 +15,7 @@ Memory::~Memory()
 
 uint8_t Memory::readByte(uint16_t address)
 {
-	uint8_t returnVal = 0;
+	uint8_t returnVal = 0xFF;
 	// Cartridge space
 	if (address >= 0x0000 && address <= 0x7FFF) {
 		returnVal = gbCart->recieveData(address);
@@ -27,6 +23,14 @@ uint8_t Memory::readByte(uint16_t address)
 	// VRAM
 	else if (address >= 0x8000 && address <= 0x9FFF) {
 		returnVal = gbgpu->recieveData(address);
+	}
+	// Cartridge RAM space
+	else if (address >= 0xA000 && address <= 0xBFFF) {
+		returnVal = gbCart->recieveData(address);
+	}
+	// RAM
+	else if (address >= 0xC000 && address <= 0xFDFF) {
+		returnVal = RAM[address & 0x1FFF];	// Mask covers echo area too
 	}
 	// Controller
 	else if (address == 0xFF00) {
@@ -44,16 +48,22 @@ uint8_t Memory::readByte(uint16_t address)
 	else if (address == 0xFF0F) {
 		returnVal = interrupts->IF;
 	}
+	// Sound registers
+	else if (address >= 0xFF10 && address <= 0xFF3F) {
+		// TODO: Sound stuff. Return 00 for now (some games lock checking sound state if we return 0xFF).
+		returnVal = 0x00;
+	}
 	// GPU registers
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
 		returnVal = gbgpu->recieveData(address);
 	}
+	// High RAM area
+	else if (address >= 0xFF80 && address <= 0xFFFE) {
+		returnVal = highRAM[address & 0x7f];
+	}
 	// IE
 	else if (address == 0xFFFF) {
 		returnVal = interrupts->IE;
-	}
-	else {
-		returnVal = tempMem[address];
 	}
 	return returnVal;
 }
@@ -75,6 +85,14 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	// VRAM
 	else if (address >= 0x8000 && address <= 0x9FFF) {
 		gbgpu->sendData(address, data);
+	}
+	// Cartridge RAM space
+	else if (address >= 0xA000 && address <= 0xBFFF) {
+		gbCart->sendData(address, data);
+	}
+	// RAM
+	else if (address >= 0xC000 && address <= 0xFDFF) {
+		RAM[address & 0x1FFF] = data;	// Mask covers echo area too
 	}
 	// Controller
 	else if (address == 0xFF00) {
@@ -106,22 +124,18 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 			gbgpu->sendData(address, data);
 		}
 	}
+	// High RAM area
+	else if (address >= 0xFF80 && address <= 0xFFFE) {
+		highRAM[address & 0x7f] = data;
+	}
 	// IE interrupt flag
 	else if (address == 0xFFFF) {
 		interrupts->IE = data;
 	}
 	else{
-		tempMem[address] = data;
 		if (address == 0xFF02 && data == 0x81) {
 			cout << readByte(0xFF01);
 		}
-	}
-	// Echo space (hacky not good)
-	if (address >= 0xC000 && address <= 0xDE00) {
-		writeByteNoProtect(address + 0x2000, data);
-	}
-	else if (address >= 0xE000 && address <= 0xFE00) {
-		writeByteNoProtect(address - 0x2000, data);
 	}
 }
 
@@ -133,5 +147,4 @@ void Memory::writeWord(uint16_t address, uint16_t data)
 
 void Memory::writeByteNoProtect(uint16_t address, uint8_t data)
 {
-	tempMem[address] = data;
 }

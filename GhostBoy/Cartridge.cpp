@@ -1,18 +1,31 @@
 #include "Cartridge.h"
+#include "NOMBC.h"
+#include "MBC1.h"
+#include "MBC3.h"
+#include "MBC5.h"
 
 
-
-Cartridge::Cartridge(string romPath, bool bootStrap) : romFileStream(romPath, ios::in | ios::binary | ios::ate), bootStrap(bootStrap)
+Cartridge::Cartridge()
 {
-	// Make sure rom bank is 1
-	romBankNumber = 1;
+}
+
+
+Cartridge::~Cartridge()
+{
+}
+
+Cartridge *Cartridge::getCartridge(string romPath)
+{
+	ifstream romFileStream(romPath, ios::in | ios::binary | ios::ate);
+	int romSize;
+	uint8_t *romData;
 
 	if (romFileStream.is_open()) {
 		// Create the data array
-		int romSize = (int)romFileStream.tellg();
+		romSize = (int)romFileStream.tellg();
 		romData = new uint8_t[romSize];
 		romFileStream.seekg(0, ios::beg);	// Set file stream to beginning
-		// Copy data to array
+											// Copy data to array
 		for (int i = 0; i < romSize; i++) {
 			char oneByte;
 			romFileStream.read((&oneByte), 1);
@@ -22,7 +35,7 @@ Cartridge::Cartridge(string romPath, bool bootStrap) : romFileStream(romPath, io
 	}
 	else {
 		romData = new uint8_t[0x8000];
-		for (int i = 0; i < 0x8000; i++){
+		for (int i = 0; i < 0x8000; i++) {
 			romData[i] = 0x00;
 		}
 		cout << "Rom could not be open. This probably won't work.";
@@ -33,30 +46,85 @@ Cartridge::Cartridge(string romPath, bool bootStrap) : romFileStream(romPath, io
 	// Title
 	char title[17];
 	title[16] = 0x00;
-	for (int i = 0; i < 16; i++){
+	for (int i = 0; i < 16; i++) {
 		title[i] = (char)romData[0x134 + i];
 	}
 	// Print
-	cout << "Title: " << title <<  endl;
+	cout << "Title: " << title << endl;
 	// MBC Type
 	int MBCType = (int)romData[0x147];
+
+	// Create a returnCart object as well
+	Cartridge* returnCart = nullptr;
+
 	cout << "MBC Type: ";
 	switch (MBCType) {
-		case 0x00:
-			cout << "ROM ONLY";
-			break;
-		case 0x01:
-			cout << "MBC1";
-			break;
-		case 0x02:
-			cout << "MBC1+RAM";
-			break;
-		case 0x03:
-			cout << "MBC1+RAM+BATTERY";
-			break;
-		default:
-			cout << "Other";
-			break;
+	case 0x00:
+		cout << "ROM ONLY";
+		returnCart = new NOMBC(romData, romSize);
+		break;
+	// MBC1s
+	case 0x01:
+		cout << "MBC1";
+		returnCart = new MBC1(romData, romSize);
+		break;
+	case 0x02:
+		cout << "MBC1+RAM";
+		returnCart = new MBC1(romData, romSize);
+		break;
+	case 0x03:
+		cout << "MBC1+RAM+BATTERY";
+		returnCart = new MBC1(romData, romSize);
+		break;
+	// MBC3s
+	case 0x0F:
+		cout << "MBC3+TIMER+BATTERY";
+		returnCart = new MBC3(romData, romSize);
+		break;
+	case 0x10:
+		cout << "MBC3+TIMER+RAM+BATTERY";
+		returnCart = new MBC3(romData, romSize);
+		break;
+	case 0x11:
+		cout << "MBC3";
+		returnCart = new MBC3(romData, romSize);
+		break;
+	case 0x12:
+		cout << "MBC3+RAM";
+		returnCart = new MBC3(romData, romSize);
+		break;
+	case 0x13:
+		cout << "MBC3+RAM+BATTERY";
+		returnCart = new MBC3(romData, romSize);
+		break;
+	// MBC5s
+	case 0x19:
+		cout << "MBC5";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	case 0x1A:
+		cout << "MBC5+RAM";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	case 0x1B:
+		cout << "MBC5+RAM+BATTERY";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	case 0x1C:
+		cout << "MBC5+RUMBLE";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	case 0x1D:
+		cout << "MBC5+RUMBLE+RAM";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	case 0x1E:
+		cout << "MBC5+RUMBLE+RAM+BATTERY";
+		returnCart = new MBC5(romData, romSize);
+		break;
+	default:
+		cout << "Other";
+		break;
 	}
 	cout << endl;
 	// Rom size
@@ -89,87 +157,11 @@ Cartridge::Cartridge(string romPath, bool bootStrap) : romFileStream(romPath, io
 	// Leave another space
 	cout << endl;
 	//
+
+	// Default to MBC1 if error
+	if (returnCart == nullptr) {
+		cout << "Unimplemented MBC detected. Default to MBC5 and see if it works (it might not).\n";
+		returnCart = new MBC5(romData, romSize);
+	}
+	return returnCart;
 }
-
-
-Cartridge::~Cartridge(){
-	free(romData);
-}
-
-void Cartridge::sendData(uint16_t address, uint8_t input){
-	if (address >= 0x0000 && address <= 0x1FFF) {
-		if (input == 0x00) {
-			ramEnable = false;
-		}
-		else if (input == 0x0A) {
-			ramEnable = true;
-		}
-	}
-	else if (address >= 0x2000 && address <= 0x3FFF) {
-		if ((input & 0x1F) == 0) {
-			input = 1;
-		}
-		romBankNumber = input & 0x1F;
-	}
-	else if (address >= 0x4000 && address <= 0x5FFF) {
-		romRamBankNumber = input & 0x03;
-	}
-	else if (address >= 0x6000 && address <= 0x7FFF) {
-		if (input == 0x00) {
-			romRamMode = false;
-		}
-		else if (input == 0x01) {
-			romRamMode = true;
-		}
-	}
-	else if (address >= 0xA000 && address <= 0xBFFF) {
-		// romRamMode: false = rom, true = ram
-		if (ramEnable) {
-			if (romRamMode == true) {
-				extRam[romRamBankNumber][address - 0xA000] = input;
-			}
-			else {
-				extRam[0][address - 0xA000] = input;
-			}
-		}
-	}
-}
-
-uint8_t Cartridge::recieveData(uint16_t address)
-{
-	if (address >= 0x0000 && address <= 0x7FFF) {
-		if (address < 0x4000) {
-			return romData[address];
-		}
-		else {
-			// romRamMode: false = rom, true = ram
-			if (romRamMode == true) {
-				return romData[(0x4000 * (romBankNumber)) + (address - 0x4000)];
-			}
-			else {
-				// User upper 2 bits on this
-				return romData[(0x4000 * ((romRamBankNumber << 5)|romBankNumber)) + (address - 0x4000)];
-			}
-		}
-	}
-	else if (address >= 0xA000 && address <= 0xBFFF) {
-		// romRamMode: false = rom, true = ram
-		if (ramEnable) {
-			if (romRamMode == true) {
-				return extRam[romRamBankNumber][address - 0xA000];
-			}
-			else {
-				return extRam[0][address - 0xA000];
-			}
-		}
-		else {
-			return 0x00;
-		}
-	}
-	else {
-		// TODO: actual external ram
-		return 0;
-	}
-}
-
-

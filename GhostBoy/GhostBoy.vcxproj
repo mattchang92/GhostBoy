@@ -263,23 +263,31 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cartridge.h" />
+    <ClInclude Include="MBC1.h" />
     <ClInclude Include="GBCPU.h" />
     <ClInclude Include="GBGPU.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Interrupts.h" />
+    <ClInclude Include="MBC3.h" />
+    <ClInclude Include="MBC5.h" />
     <ClInclude Include="Memory.h" />
+    <ClInclude Include="NOMBC.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cartridge.cpp" />
+    <ClCompile Include="MBC1.cpp" />
     <ClCompile Include="GBCPU.cpp" />
     <ClCompile Include="GhostBoy.cpp" />
     <ClCompile Include="GBGPU.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Interrupts.cpp" />
+    <ClCompile Include="MBC3.cpp" />
+    <ClCompile Include="MBC5.cpp" />
     <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="NOMBC.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>

@@ -44,7 +44,8 @@ int main(int argc, char* argv[])
 	}
 
 	// Creat obbjects
-	Cartridge gbCart(romFilePath, false);
+	//Cartridge gbCart(romFilePath, false);
+	Cartridge* gbCart = Cartridge::getCartridge(romFilePath);
 	Interrupts interrupts;
 	Timer timer(interrupts);
 	GBGPU gbgpu(interrupts);
@@ -61,6 +62,8 @@ int main(int argc, char* argv[])
 	SDL_Renderer *ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_Event events;
 
+	int cycleTotal = 0;
+	int vblankCount = 0;
 	
 
 	CPU.resetGBNoBios();
@@ -80,13 +83,16 @@ int main(int argc, char* argv[])
 			CPU.executeOneInstruction();
 			timer.updateTimers(CPU.getLastCycleCount());
 			gbgpu.updateGPUTimer(CPU.getLastCycleCount());
-
-			//TEMP
-			mainMem.writeByte(0xFF00, 0xFF);
+			
+			//cycleTotal += CPU.getLastCycleCount();
 		}
+		//cout << "Total cycles this frame: " << cycleTotal << "\n";
+		//cycleTotal = 0;
 		// Stuff to run after a vblank occurs
+		vblankCount++;
+		//cout << "Vblank count: " << vblankCount << "\n";
 		gbgpu.newVblank = false;
-		if ((gbgpu.recieveData(0xFF40) & 0x80) != 0) {
+		if ((gbgpu.recieveData(0xFF40) & 0x80) != 0/*true*/) {
 			gbgpu.renderScreen(window, ren);
 		}
 	}

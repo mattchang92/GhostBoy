@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
@@ -9,29 +10,12 @@ using namespace std;
 class Cartridge
 {
 public:
-	// Constructor
-	Cartridge(string romPath, bool bootStrap);
+	Cartridge();
 	~Cartridge();
-	// Public functions
-	void sendData(uint16_t address, uint8_t input);
-	uint8_t recieveData(uint16_t address);
 
+	virtual void sendData(uint16_t address, uint8_t data) = 0;
+	virtual uint8_t recieveData(uint16_t address) = 0;
 
-private:
-	// Private functions
-
-	// Private variables and classes
-	bool bootStrap;
-	uint8_t extRam[4][0xBFFF - 0xA000 + 1];	// Somewhat temporary
-	ifstream romFileStream;
-	// MBC1 registers
-	bool ramEnable;
-	int romBankNumber;
-	int romRamBankNumber = 0;
-	bool romRamMode;
-
-	// Dynamically allocated data pointers
-	uint8_t *romData;
-
+	static Cartridge* getCartridge(string romPath);
 };
 

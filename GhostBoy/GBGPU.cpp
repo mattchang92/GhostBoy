@@ -49,7 +49,8 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 				LCDC = data;
 				break;
 			case STATbyte:
-				STAT = data;
+				//STAT = data;
+				STAT = (STAT & 0x7) | (data & 0xF8);
 				break;
 			case SCYbyte:
 				SCY = data;
@@ -142,7 +143,7 @@ uint8_t GBGPU::recieveData(uint16_t address) {
 void GBGPU::updateGPUTimer(int lastCycleCount) {
 	int mode = STAT & 0x3;
 	GPUCycleCount += lastCycleCount;
-	if (/*(LCDC & 0x80) != 0*/true) {	// I honestly don't know if this is conditional
+	if ((LCDC & 0x80) != 0/*true*/) {	// I honestly don't know if this is conditional
 		switch(mode) {
 			// HBlank
 			case 0:
@@ -150,6 +151,9 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					GPUCycleCount -= 204;
 					//GPUCycleCount = 0;
 					LY++;
+
+					// check LY == LYC
+					checkLYC();
 					
 					if (LY == 144) {
 						mode = 1;	// Switch to vblank
@@ -174,12 +178,17 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					//GPUCycleCount = 0;
 					LY++;
 
+					// check LY == LYC
+					checkLYC();
+
 					if (LY > 153) {
 						mode = 2;
 						if ((STAT & mode2) != 0) {
 							interrupts->IF |= (0xE0 | LCDCint);
 						}
 						LY = 0;
+						// check LY == LYC
+						checkLYC();
 					}
 				}
 				break;
@@ -210,17 +219,11 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 	}
 	else {
 		GPUCycleCount = 0;
+		LY = 0;
+		mode = 0;	// Set mode to 0 to indicate VRAM is safe
+		STAT &= 0xFC;
 	}
-	// Interrupt on lyc = ly coincidence
-	if (LY == LYC) {
-		STAT |= 0x4;
-	}
-	else {
-		STAT &= 0xFB;
-	}
-	if ((STAT & coincidence) != 0 && (STAT & 0x04) != 0) {
-		interrupts->IF |= (0xE0 | LCDCint);
-	}
+
 	// Write current mode to STAT
 	STAT &= 0xFC;
 	STAT |= mode;
@@ -436,5 +439,18 @@ void GBGPU::renderScanline() {
 		int drawX = i;
 		int drawY = LY;
 		globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = color;
+	}
+}
+
+void GBGPU::checkLYC() {
+	// Interrupt on lyc = ly coincidence
+	if (LY == LYC) {
+		STAT |= 0x4;
+	}
+	else {
+		STAT &= 0xFB;
+	}
+	if ((STAT & coincidence) != 0 && (STAT & 0x04) != 0) {
+		interrupts->IF |= (0xE0 | LCDCint);
 	}
 }

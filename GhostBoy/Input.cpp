@@ -53,5 +53,5 @@ uint8_t Input::recieveData() {
 	}
 	P1Data &= 0xF0;
 	P1Data |= controlBits;
-	return P1Data;
+	return P1Data|0xC0;
 }

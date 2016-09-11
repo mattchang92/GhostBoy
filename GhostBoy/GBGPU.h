@@ -30,6 +30,8 @@ private:
 	// Global backgroud image
 	SDL_Surface *backgroundGlobal = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
 	void renderScanline();
+	// LYC Check
+	void checkLYC();
 	// Cycle Counter
 	int GPUCycleCount = 0;
 	// GPU Held memory
