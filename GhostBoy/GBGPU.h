@@ -30,13 +30,28 @@ private:
 	// Global backgroud image
 	SDL_Surface *backgroundGlobal = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
 	void renderScanline();
+	// Pixel data holders
+	uint32_t lineBuffer[160] = {};
+	//uint32_t windowLine[160];
+	//uint32_t spriteLine[160];
+	//bool spritePriorities[160];
+	void renderBGLine();
+	void renderWindowLine();
+	uint8_t windowLineCounter;
+	void renderSpriteLine();
 	// LYC Check
 	void checkLYC();
 	// Cycle Counter
 	int GPUCycleCount = 0;
+	// OAM Table struct
+	struct OAMEntry {
+		uint8_t y, x, tileNum, attributes;
+	};
+
 	// GPU Held memory
 	uint8_t VRAM[0x9FFF - 0x800 + 1] = {};
 	uint8_t OAM[0xFe9F - 0xFE00 + 1] = {};
+	//OAMEntry OAMTable[0xFe9F - 0xFE00 + 1] = {};
 	// GPU Registers
 	uint8_t LCDC = 0;
 	uint8_t STAT = 0;
@@ -49,6 +64,7 @@ private:
 	uint8_t OBP1 = 0;
 	uint8_t WY = 0;
 	uint8_t WX = 0;
+
 
 	// Pallete color
 	// Black and white pallete

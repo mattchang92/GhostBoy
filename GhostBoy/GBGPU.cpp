@@ -40,7 +40,7 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 		VRAM[address - 0x8000] = data;
 	}
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
-		OAM[address - 0xFE00] = data;
+		OAM[address & 0xFF] = data;
 	}
 	// Register write
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
@@ -60,6 +60,7 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 				break;
 			case LYbyte:
 				LY = 0;
+				windowLineCounter = 0;
 				break;
 			case LYCbyte:
 				LYC = data;
@@ -94,7 +95,7 @@ uint8_t GBGPU::recieveData(uint16_t address) {
 		returnData = VRAM[address - 0x8000];
 	}
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
-		returnData = OAM[address - 0xFE00];
+		returnData = OAM[address & 0xFF];
 	}
 	// Register write
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
@@ -181,14 +182,31 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					// check LY == LYC
 					checkLYC();
 
-					if (LY > 153) {
+					/*if (LY > 153) {
 						mode = 2;
 						if ((STAT & mode2) != 0) {
 							interrupts->IF |= (0xE0 | LCDCint);
 						}
 						LY = 0;
+						windowLineCounter = 0;
 						// check LY == LYC
 						checkLYC();
+					}*/
+					// When we reach line 153, it starts reporting that the line is 0, and activates LYC.
+					// However, vblank still lasts for another line. Line 0 essentially gets to last twice as long!
+					// Maybe comparable to the pre-redner line of the NES? GB is weird.
+					if (LY == 153) {
+						LY = 0;
+						windowLineCounter = 0;
+						checkLYC();
+					}
+					else if (LY == 1) {
+						mode = 2;
+						if ((STAT & mode2) != 0) {
+							interrupts->IF |= (0xE0 | LCDCint);
+						}
+						LY = 0;
+						// LYC interrupt supposedly doesn't activate once again or anything. Line 0 just needs to be extended.
 					}
 				}
 				break;
@@ -220,6 +238,7 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 	else {
 		GPUCycleCount = 0;
 		LY = 0;
+		windowLineCounter = 0;
 		mode = 0;	// Set mode to 0 to indicate VRAM is safe
 		STAT &= 0xFC;
 	}
@@ -239,7 +258,7 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 	SDL_BlitSurface(backgroundGlobal, NULL, mainSurface, NULL);
 
 	// Window
-	if ((LCDC & 0x20) != 0) {
+	/*if ((LCDC & 0x20) != 0) {
 		SDL_Surface *window = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
 		for (int i = 0; i < 32; i++) {
 			for (int j = 0; j < 32; j++) {
@@ -269,10 +288,10 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 		SDL_BlitSurface(window, NULL, mainSurface, &windowRect);
 		
 		SDL_FreeSurface(window);
-	}
+	}*/
 	// Sprites
 	// Render sprites from OAM, copy to main surface
-	bool spriteSize = (LCDC & 0x4) != 0;	// Determine if 8x8 or 8x16, false true
+	/*bool spriteSize = (LCDC & 0x4) != 0;	// Determine if 8x8 or 8x16, false true
 	for (int i = 0; i < 40; i++) {
 		if((OAM[i*4] > 0 && OAM[i*4] < 160)
 			&& (OAM[(i * 4) + 1] > 0 && OAM[(i * 4) + 1] < 168)) {
@@ -303,7 +322,7 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 			SDL_BlitSurface(sprite, NULL, mainSurface, &spriteRect);
 			SDL_FreeSurface(sprite);
 		}
-	}
+	}*/
 	// Render main surface
 	SDL_Texture *tex = SDL_CreateTextureFromSurface(ren, mainSurface);
 	SDL_FreeSurface(mainSurface);
@@ -377,14 +396,44 @@ void GBGPU::drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, boo
 	}
 }
 
+
 void GBGPU::renderScanline() {
 	// Declare starting X and Y position
 	uint8_t x = SCX;
 	uint8_t y = SCY + LY;
 
+	// Run line renderers
+	// Background
+	if (LCDC & 0x01){
+		renderBGLine();
+	}
+	// Window
+	if (LCDC & 0x20){
+		renderWindowLine();
+	}
+	// Sprites
+	if (LCDC & 0x02) {
+		renderSpriteLine();
+	}
+
+
 	// Declare BG pixels pointer/array
 	uint32_t *globalBGPixels = (uint32_t*)backgroundGlobal->pixels;
 
+	for (int i = 0; i < 160; i++) {
+		int pixelData = lineBuffer[i];
+		lineBuffer[i] = 0;
+
+		// Write to background surface
+		int drawX = i;
+		int drawY = LY;
+		globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = colors[pixelData];
+	}
+}
+
+void GBGPU::renderBGLine() {
+	uint8_t x = SCX;
+	uint8_t y = SCY + LY;
 	for (int i = 0; i < 160; i++, x++) {
 		// Get the current tile number based on this
 		int tileNum = (x / 8) + ((y / 8) * 32);
@@ -410,37 +459,152 @@ void GBGPU::renderScanline() {
 		int pixelX = x % 8;
 		int pixelY = y % 8;
 
-		int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1)|
+		int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
 			((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
 
-		uint32_t color = 0;
-		switch (pixelData) {
-			case 3:
-				// Black
-				color = colors[(BGP >> 6) & 0x3];
-				break;
-			case 2:
-				// Dark Gray
-				color = colors[(BGP >> 4) & 0x3];
-				break;
-			case 1:
-				// Light Gray
-				color = colors[(BGP >> 2) & 0x3];
-				break;
-			case 0:
-				// white, only do this for background tiles
-				color = colors[(BGP)& 0x3];
-				//surfacePixels[drawX + (drawY * inSurface->h)] = 0x636F57;
-				break;
-			default:
-				break;
-		}
-		// Write to background surface
-		int drawX = i;
-		int drawY = LY;
-		globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = color;
+		lineBuffer[i] = (BGP >> (2*pixelData)) & 0x3;
 	}
 }
+
+void GBGPU::renderWindowLine() {
+	// Check if Window is actually on the line, skip this entirely if it's not
+	int windowX = WX - 7;
+	int windowY = WY;
+
+	if (windowX >= 160 || windowY > LY) {
+		return;
+	}
+
+	int x = 7 - WX;
+	int y = windowLineCounter;	// I have no idea if I'm implementing this correctly gosh dang
+	windowLineCounter++;
+
+	for (int i = 0; i < 160; i++, x++) {
+		// Get the current tile number based on this
+		if (i >= windowX && i < (windowX + 160) && x >= 0) {
+			int tileNum = (x / 8) + ((y / 8) * 32);
+
+			// Determine the location in memory of the tile
+			uint16_t tileLocation = 0x0000;
+
+			if ((LCDC & 0x40) != 0) {
+				tileLocation = recieveData(0x9C00 + tileNum);
+			}
+			else {
+				tileLocation = recieveData(0x9800 + tileNum);
+			}
+			if ((LCDC & 0x10) != 0) {
+				tileLocation = 0x8000 + (tileLocation << 4);
+			}
+			else {
+				tileLocation = (128 + (int16_t)tileLocation) & 0xff;
+				tileLocation = 0x8800 + (tileLocation << 4);
+			}
+
+			// Use simple modulo to get pixel number of tile
+			int pixelX = x % 8;
+			int pixelY = y % 8;
+
+			int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
+				((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
+
+			lineBuffer[i] = (BGP >> (2 * pixelData)) & 0x3;
+		}
+	}
+}
+
+void GBGPU::renderSpriteLine() {
+	uint8_t OAM2[40] = {};				// Secondary OAM table
+	int spriteCount = 0;			// Keep track of how many sprites are on the line
+	int spriteLineBuffer[160] = {};	// Buffer for sprite lines, to be applied over bg
+	int spriteSignature[160] = {};	// Stores which sprite is on the pixel cause I dunno how else to handle sprite overlap priority.
+	// Initialize signatures and line buffer to all 0
+	for (int i = 0; i < 160; i++) {
+		spriteLineBuffer[i] = -1;
+		spriteSignature[i] = -1;
+	}
+	bool priorityValues[160] = {};		// BG Priority values per pixel, treating this similar to the NES since I'm not sure of it's real behavior.
+	bool tallSprite = (LCDC & 0x4) == 0x4;
+	int spriteHeight = tallSprite ? 16 : 8;
+	// Check all sprites and see which are on the line, up to 10 sprites
+	for (int i = 0; i < 40 && spriteCount < 10; i++) {
+		if ((LY >= (OAM[i*4] - 16)) && (LY < (OAM[i * 4] - 16 + spriteHeight))) {
+			OAM2[(spriteCount * 4) + 0] = OAM[(i * 4) + 0];
+			OAM2[(spriteCount * 4) + 1] = OAM[(i * 4) + 1];
+			OAM2[(spriteCount * 4) + 2] = OAM[(i * 4) + 2];
+			OAM2[(spriteCount * 4) + 3] = OAM[(i * 4) + 3];
+			spriteCount++;
+		}
+	}
+
+	if (spriteCount == 0) {
+		return;
+	}
+
+	for (int i = 0; i < spriteCount; i++) {
+		uint8_t spriteY = OAM2[(i * 4) + 0] - 16;
+		uint8_t spriteX = OAM2[(i * 4) + 1] - 8;
+		uint8_t spriteTile = OAM2[(i * 4) + 2];
+		uint8_t spriteAttributes = OAM2[(i * 4) + 3];
+
+		// Set pixelY, accounting for vertical flip
+		uint8_t pixelY = (spriteAttributes & 0x40) ? (spriteHeight - 1) - (LY - spriteY) : LY - spriteY;
+
+		// For tall sprites, re-adjust spriteTile pointer accordingly
+		if (tallSprite) {
+			if (pixelY < 8) {
+				spriteTile &= 0xFE;
+			}
+			else {
+				spriteTile |= 0x1;
+			}
+			pixelY = pixelY & 0x7;	// mask the value if it's tall
+		}
+		uint16_t tilePointer = spriteTile << 4;
+		uint8_t tileByte0 = VRAM[tilePointer + (2*pixelY)];
+		uint8_t tileByte1 = VRAM[tilePointer + (2 * pixelY) + 1];
+
+		// Check if a sprite is already here, mark if that sprite should have priority over this one
+		// Sprites with the same X value are hidden underneath at lower priorities, this should handle that case.
+		int higherPrioritySprite = i;
+		if (spriteSignature[spriteX] >= 0 ) {
+			higherPrioritySprite = spriteSignature[spriteX];
+		}
+
+		for (int j = 0; j < 8; j++) {
+			// Don't draw off screen, break if we're about to (don't want out of bounds array access).
+			/*if ((spriteX + j) >= 160){
+				break;
+			}*/
+			// Assign the pixel X value, then get the pixels value (0-3)
+			int pixelX = ((spriteAttributes & 0x20) ? (7 - j) : j);
+			uint32_t pixelNumber = ((tileByte0 >> (7 - pixelX)) & 0x1) | (((tileByte1 >> (7 - pixelX)) & 0x1) << 1);
+			//lineBuffer[i] = (BGP >> (2*pixelData)) & 0x3;
+			// If we can write a pixel here, then write a pixel here
+			uint8_t pixelNum = spriteX + j;
+			// There's probably another way of dealing with priority values ie checking a given sprite on the line's X Value against the currents. Might fix some edge-cases.
+			if (((spriteSignature[pixelNum] != higherPrioritySprite) || spriteLineBuffer[pixelNum] == -1) && (pixelNum) < 160) {
+				if (pixelNumber != 0) {
+					spriteLineBuffer[pixelNum] = (((spriteAttributes & 0x10) ? OBP1 : OBP0) >> (2 * pixelNumber)) & 0x3;
+				}
+				// Sprite Signature field is stricter, won't be overwritten just because of a transparent pixel
+				if (spriteSignature[pixelNum] != higherPrioritySprite) {
+					spriteSignature[pixelNum] = i;
+				}
+				priorityValues[pixelNum] = (spriteAttributes & 0x80) == 0x80;	// True if it's behind
+			}
+		}
+	}
+	// Line buffer mixing
+	for (int i = 0; i < 160; i++) {
+		// Either the sprite is always in front, or there's a 0 pixel there (meaning 
+		if ((!priorityValues[i] || lineBuffer[i] == 0) && spriteLineBuffer[i] != -1) {
+			lineBuffer[i] = spriteLineBuffer[i];
+		}
+	}
+}
+
+
 
 void GBGPU::checkLYC() {
 	// Interrupt on lyc = ly coincidence
