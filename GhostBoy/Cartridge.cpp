@@ -222,7 +222,7 @@ void Cartridge::saveBatteryFile(uint8_t * extRAM, unsigned int ramSize, string i
 			batteryFileStream.write(&oneByte, 1);
 		}
 		batteryFileStream.close();
-		cout << "Write (should be?) successful\n";
+		//cout << "Write (should be?) successful\n";
 	}
 	else {
 		cout << "Error: Could not open save file stream. File will not be saved\n";
