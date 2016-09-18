@@ -13,11 +13,15 @@ class MBC1 :
 {
 public:
 	// Constructor
-	MBC1(uint8_t* romData, int romSize);
+	MBC1(uint8_t* romData, unsigned int romSize, unsigned int ramSize);
 	~MBC1();
 	// Public functions
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
+
+	// Battery functions
+	void setBatteryLocation(string batteryPath);
+	void saveBatteryData();
 
 
 private:
@@ -25,8 +29,12 @@ private:
 
 	// Private variables and classes
 	unsigned int romSize;
-	bool bootStrap;
-	uint8_t extRAM[4][0xBFFF - 0xA000 + 1];	// Somewhat temporary
+	unsigned int ramSize;
+	string batteryPath = "";
+	bool battery = false;
+	bool ramNewData = false;
+	//uint8_t extRAM[4][0xBFFF - 0xA000 + 1];	// Somewhat temporary
+	uint8_t* extRAM;
 	ifstream romFileStream;
 	// MBC1 registers
 	bool ramEnable;

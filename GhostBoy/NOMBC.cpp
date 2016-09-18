@@ -24,3 +24,11 @@ uint8_t NOMBC::recieveData(uint16_t address)
 {
 	return romData[address & 0x7FFF];
 }
+
+void NOMBC::setBatteryLocation(string inBatteryPath)
+{
+}
+
+void NOMBC::saveBatteryData()
+{
+}

@@ -2,19 +2,26 @@
 
 
 
-MBC1::MBC1(uint8_t* romData, int romSize) : romData(romData), romSize(romSize)
+MBC1::MBC1(uint8_t* romData, unsigned int romSize, unsigned int ramSize) : romData(romData), romSize(romSize), ramSize(ramSize)
 {
 	// Make sure rom bank is 1
 	romBankNumber = 1;
+	extRAM = new uint8_t[ramSize];
 }
 
 
 MBC1::~MBC1(){
 	free(romData);
+	free(extRAM);
 }
 
 void MBC1::sendData(uint16_t address, uint8_t data){
 	if (address >= 0x0000 && address <= 0x1FFF) {
+		// If it's being disabled and there's new data written to RAM, save the data and reset the newData flag
+		if (battery & ramEnable && (data & 0xF) != 0xA && ramNewData) {
+			saveBatteryData();
+			ramNewData = false;
+		}
 		ramEnable = (data & 0xF) == 0xA;
 	}
 	else if (address >= 0x2000 && address <= 0x3FFF) {
@@ -36,12 +43,16 @@ void MBC1::sendData(uint16_t address, uint8_t data){
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
 		// romRamMode: false = rom, true = ram
-		if (ramEnable) {
+		if (ramEnable && ramSize > 0) {
 			if (romRamMode == true) {
-				extRAM[romRamBankNumber][address - 0xA000] = data;
+				//extRAM[romRamBankNumber][address - 0xA000] = data;
+				extRAM[((address & 0x1FFF) | (romRamBankNumber << 13)) & (ramSize - 1)] = data;
+				ramNewData = true;
 			}
 			else {
-				extRAM[0][address - 0xA000] = data;
+				//extRAM[0][address - 0xA000] = data;
+				extRAM[(address & 0x1FFF) & (ramSize - 1)] = data;
+				ramNewData = true;
 			}
 		}
 	}
@@ -69,12 +80,14 @@ uint8_t MBC1::recieveData(uint16_t address)
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
 		// romRamMode: false = rom, true = ram
-		if (ramEnable) {
+		if (ramEnable && ramSize > 0) {
 			if (romRamMode == true) {
-				return extRAM[romRamBankNumber][address & 0x1FFF];
+				//return extRAM[romRamBankNumber][address & 0x1FFF];
+				return extRAM[((address & 0x1FFF) | (romRamBankNumber << 13)) & (ramSize - 1)];
 			}
 			else {
-				return extRAM[0][address & 0x1FFF];
+				//return extRAM[0][address & 0x1FFF];
+				return extRAM[(address & 0x1FFF) & (ramSize -1)];
 			}
 		}
 		else {
@@ -85,6 +98,20 @@ uint8_t MBC1::recieveData(uint16_t address)
 		// TODO: actual external ram
 		return 0;
 	}
+}
+
+void MBC1::setBatteryLocation(string inBatteryPath)
+{
+	battery = true;
+	batteryPath = inBatteryPath;
+	if (!Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
+		battery = false;	// Disable battery if load wasn't sucessful;
+	}
+}
+
+void MBC1::saveBatteryData()
+{
+	Cartridge::saveBatteryFile(extRAM, ramSize, batteryPath);
 }
 
 

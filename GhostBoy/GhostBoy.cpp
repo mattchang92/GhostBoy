@@ -16,7 +16,6 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	
 	//Cartridge gbCart("roms/cpu_instrs/individual/09-op r,r.gb", false);
 	//Cartridge gbCart("roms/cpu_instrs/cpu_instrs.gb", false);
 	// Handle arguments
@@ -39,7 +38,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	if (launchError) {
-		cout << "Usage: GhostBoy.exe romfile screenmultiplier\n";
+		cout << "Usage: GhostBoy romfile screenmultiplier\n";
 		exit(-1);
 	}
 

@@ -15,12 +15,15 @@ Input::~Input()
 }
 
 void Input::pollControl(uint8_t data) {
-	P1Data = data;
+	P1Data = (P1Data & 0xF)|(data & 0x30);
 	if ((P1Data & 0x10) == 0) {
 		controlMode = false;
 	}
 	else if ((P1Data & 0x20) == 0) {
 		controlMode = true;
+	}
+	else {
+		P1Data &= 0xF0;
 	}
 }
 
@@ -43,9 +46,9 @@ uint8_t Input::recieveData() {
 	// P15
 	else {
 		// A
-		controlBits |= (keys[SDL_SCANCODE_X] ? 0 : 1) << 0;
+		controlBits |= (keys[SDL_SCANCODE_S] ? 0 : 1) << 0;
 		// B
-		controlBits |= (keys[SDL_SCANCODE_Z] ? 0 : 1) << 1;
+		controlBits |= (keys[SDL_SCANCODE_A] ? 0 : 1) << 1;
 		// Select
 		controlBits |= (keys[SDL_SCANCODE_BACKSPACE] ? 0 : 1) << 2;
 		// Start
