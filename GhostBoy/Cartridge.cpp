@@ -201,7 +201,6 @@ bool Cartridge::loadBatteryFile(uint8_t * extRAM, unsigned int ramSize, string i
 			success = false;
 		}
 		batteryFileStream.close();
-		return success;
 	}
 	else {
 		// Load in 0 data if save couldn't be open, basically making a new file.
@@ -209,7 +208,9 @@ bool Cartridge::loadBatteryFile(uint8_t * extRAM, unsigned int ramSize, string i
 		for (unsigned int i = 0; i < ramSize; i++) {
 			extRAM[i] = 0;
 		}
+		success = true;	// This is fine.
 	}
+	return success;
 }
 
 void Cartridge::saveBatteryFile(uint8_t * extRAM, unsigned int ramSize, string inBatteryPath)
