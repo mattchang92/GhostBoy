@@ -11,6 +11,7 @@
 #include "stdint.h"
 #include "Interrupts.h"
 #include "GBGPU.h"
+#include "APU.h"
 
 using namespace std;
 
@@ -49,7 +50,8 @@ int main(int argc, char* argv[])
 	Timer timer(interrupts);
 	GBGPU gbgpu(interrupts);
 	Input input;
-	Memory mainMem (gbCart, interrupts, timer, gbgpu, input);
+	APU apu;
+	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu);
 	GBCPU CPU (mainMem);
 	// SDL Stuff
 	SDL_Init(SDL_INIT_VIDEO);
@@ -82,9 +84,11 @@ int main(int argc, char* argv[])
 			CPU.executeOneInstruction();
 			timer.updateTimers(CPU.getLastCycleCount());
 			gbgpu.updateGPUTimer(CPU.getLastCycleCount());
+			apu.step(CPU.getLastCycleCount());
 			
 			//cycleTotal += CPU.getLastCycleCount();
 		}
+		//apu.playSound();	// Play buffered sound?
 		//cout << "Total cycles this frame: " << cycleTotal << "\n";
 		//cycleTotal = 0;
 		// Stuff to run after a vblank occurs

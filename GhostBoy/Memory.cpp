@@ -3,8 +3,8 @@
 
 
 
-Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input) : gbCart(gbCart), 
-interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input)
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu) : gbCart(gbCart), 
+interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu)
 {
 }
 
@@ -109,6 +109,10 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	// IF interrupt flag
 	else if (address == 0xFF0F) {
 		interrupts->IF = data;
+	}
+	// APU
+	else if (address >= 0xFF10 && address <= 0xFF3F) {
+		apu->sendData(address, data);
 	}
 	// GPU registers
 	else if (address >= 0xFF40 && address <= 0xFF4B) {

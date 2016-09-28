@@ -57,6 +57,12 @@
     <ClInclude Include="MBC5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="APU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SquareChannel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -96,6 +102,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MBC5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APU.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SquareChannel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

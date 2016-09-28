@@ -262,6 +262,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="APU.h" />
     <ClInclude Include="Cartridge.h" />
     <ClInclude Include="MBC1.h" />
     <ClInclude Include="GBCPU.h" />
@@ -272,11 +273,13 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
     <ClInclude Include="MBC5.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="NOMBC.h" />
+    <ClInclude Include="SquareChannel.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="APU.cpp" />
     <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="MBC1.cpp" />
     <ClCompile Include="GBCPU.cpp" />
@@ -288,6 +291,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
     <ClCompile Include="MBC5.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="NOMBC.cpp" />
+    <ClCompile Include="SquareChannel.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>

@@ -4,12 +4,13 @@
 #include "Timer.h"
 #include "GBGPU.h"
 #include "Input.h"
+#include "APU.h"
 
 #pragma once
 class Memory
 {
 public:
-	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input);
+	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu);
 	~Memory();
 	uint8_t readByte(uint16_t address);
 	uint16_t readWord(uint16_t address);
@@ -24,6 +25,7 @@ private:
 	Timer *timer;
 	GBGPU *gbgpu;
 	Input *input;
+	APU *apu;
 	// Internal arrays and variables
 	//uint8_t tempMem[0xFFFF + 1] = {};	// Temp storage map
 	uint8_t RAM[0x2000] = {0};			// 8KB RAM 
