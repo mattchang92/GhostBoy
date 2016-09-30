@@ -87,7 +87,7 @@ void GBCPU::resetGBNoBios() {
 	reg_SP = 0xFFFE;
 	// Some registers need to be set up
 
-	mainMem->writeByte(0xFF10, 0x80);
+	/*mainMem->writeByte(0xFF10, 0x80);
 	mainMem->writeByte(0xFF11, 0xBF);
 	mainMem->writeByte(0xFF12, 0xF3);
 	mainMem->writeByte(0xFF14, 0xBF);
@@ -101,7 +101,7 @@ void GBCPU::resetGBNoBios() {
 	mainMem->writeByte(0xFF23, 0xBF);
 	mainMem->writeByte(0xFF24, 0x77);
 	mainMem->writeByte(0xFF25, 0xF3);
-	mainMem->writeByte(0xFF26, 0xF1);
+	mainMem->writeByte(0xFF26, 0xF1);*/
 	mainMem->writeByte(0xFF40, 0x91);
 	mainMem->writeByte(0xFF47, 0xFC);
 	mainMem->writeByte(0xFF48, 0xFF);

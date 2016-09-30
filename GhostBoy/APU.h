@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "SDL.h"
 #include "SquareChannel.h"
+#include "WaveChannel.h"
 
 #define samplesize 512
 
@@ -26,15 +27,23 @@ public:
 	bool getBufferReady();
 
 private:
+	// Values OR'd into register reads.
+	const uint8_t readOrValues[23] = {  0x80,0x3f,0x00,0xff,0xbf,
+										0xff,0x3f,0x00,0xff,0xbf,
+										0x7f,0xff,0x9f,0xff,0xbf,
+										0xff,0xff,0x00,0x00,0xbf,
+										0x00,0x00,0x70 };
 	// The 4 channels
 	SquareChannel squareOne;
 	SquareChannel squareTwo;
+	WaveChannel waveChannel;
 	//APUChannel squareOne;
 	int frameSequenceCountDown = 8192;
 	int downSampleCount = 95;
 	int bufferFillAmount = 0;
 	float squareBuffer0[samplesize] = { 0 };
 	float squareBuffer1[samplesize] = { 0 };
+	float waveBuffer[samplesize] = { 0 };
 	bool buffer0Ready = false;
 	bool buffer1Ready = false;
 	unsigned int buffer0Amount = 0;

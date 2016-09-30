@@ -35,11 +35,31 @@ void APU::sendData(uint16_t address, uint8_t data)
 	else if (apuRegister >= 0x16 && apuRegister <= 0x19) {
 		squareTwo.writeRegister(apuRegister, data);
 	}
+	else if (apuRegister >= 0x1A && apuRegister <= 0x1E) {
+		waveChannel.writeRegister(address, data);
+	}
+	else if (apuRegister >= 0x30 && apuRegister <= 0x3F) {
+		waveChannel.writeRegister(address, data);
+	}
 }
 
 uint8_t APU::recieveData(uint16_t address)
 {
 	uint8_t returnData = 0;
+	uint8_t apuRegister = address & 0xFF;
+	if (apuRegister >= 0x10 && apuRegister <= 0x14) {
+		returnData = squareOne.readRegister(apuRegister);
+	}
+	else if (apuRegister >= 0x16 && apuRegister <= 0x19) {
+		returnData = squareTwo.readRegister(apuRegister);
+	}
+	else if (apuRegister >= 0x1A && apuRegister <= 0x1E) {
+		returnData = waveChannel.readRegister(address);
+	}
+	else if (apuRegister >= 0x30 && apuRegister <= 0x3F) {
+		returnData = waveChannel.readRegister(address);
+	}
+	returnData |= readOrValues[apuRegister - 0x10];
 	return returnData;
 }
 
@@ -55,6 +75,7 @@ void APU::step(int cycles)
 				case 0:
 					squareOne.lengthClck();
 					squareTwo.lengthClck();
+					waveChannel.lengthClck();
 					break;
 				case 1:
 					break;
@@ -62,12 +83,14 @@ void APU::step(int cycles)
 					squareOne.sweepClck();
 					squareOne.lengthClck();
 					squareTwo.lengthClck();
+					waveChannel.lengthClck();
 					break;
 				case 3:
 					break;
 				case 4:
 					squareOne.lengthClck();
 					squareTwo.lengthClck();
+					waveChannel.lengthClck();
 					break;
 				case 5:
 					break;
@@ -75,6 +98,7 @@ void APU::step(int cycles)
 					squareOne.sweepClck();
 					squareOne.lengthClck();
 					squareTwo.lengthClck();
+					waveChannel.lengthClck();
 					break;
 				case 7:
 					squareOne.envClck();
@@ -90,12 +114,23 @@ void APU::step(int cycles)
 		// Step all the channels
 		squareOne.step();
 		squareTwo.step();
+		waveChannel.step();
 
 		if (--downSampleCount <= 0) {
 			downSampleCount = 95;
 			float bufferin1 = ((float)squareOne.getOutputVol()) / 100;
 			float bufferin2 = ((float)squareTwo.getOutputVol()) / 100;
 			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin2, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
+			float bufferin3 = ((float)waveChannel.getOutputVol()) / 100;
+			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin3, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
+			//float bufferin1 = ((float)waveChannel.getOutputVol()) / 100;
+			// Try another conversioon
+			/*float bufferin1 = ((float)squareOne.getOutputVol()) / 15;
+			float bufferin2 = ((float)squareTwo.getOutputVol()) / 15;
+			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin2, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
+			float bufferin3 = ((float)waveChannel.getOutputVol()) / 15;
+			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin3, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);*/
+
 			squareBuffer0[bufferFillAmount] = bufferin1;
 			bufferFillAmount++;
 		}

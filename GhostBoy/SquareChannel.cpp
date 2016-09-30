@@ -19,7 +19,29 @@ uint8_t SquareChannel::readRegister(uint16_t address)
 {
 	uint8_t returnData = 0;
 
-
+	uint8_t squareRegister = (address & 0xF) % 0x5;
+	switch (squareRegister) {
+		// Sweep. Only on Square 1
+	case 0x0:
+		returnData = (sweepShift) | ((sweepNegate) << 3) | (sweepPeriodLoad << 4);
+		break;
+		// Duty, Length Load
+	case 0x1:
+		returnData = (lengthLoad & 0x3F) | ((duty & 0x3) << 6);
+		break;
+		// Envelope
+	case 0x2:
+		returnData = (envelopePeriodLoad & 0x7) | (envelopeAddMode << 3) | ((volumeLoad & 0xF) << 4);
+		break;
+	case 0x3:
+		returnData = timerLoad & 0xFF;
+		break;
+		// Trigger, length enable, frequency MSB
+	case 0x4:
+		returnData = ((timerLoad >> 8) & 0x7) | (lengthEnable << 6) | (triggerBit << 7);	// Trigger bit probably?
+		// Trigger is on 0x80, bit 7.
+		break;
+	}
 
 	return returnData;
 }
@@ -37,8 +59,8 @@ void SquareChannel::writeRegister(uint16_t address, uint8_t data)
 			break;
 		// Duty, Length Load
 		case 0x1:
-			lengthLoad = 64 - (data & 0x3F);
-			lengthCounter = lengthLoad;
+			lengthLoad = data & 0x3F;
+			lengthCounter = 64 - (lengthLoad & 0x3F);
 			duty = (data >> 6) & 0x3;
 			break;
 		// Envelope
@@ -64,6 +86,7 @@ void SquareChannel::writeRegister(uint16_t address, uint8_t data)
 			timerLoad = (timerLoad & 0xFF) | ((data & 0x7) << 8);
 			lengthEnable = (data & 0x40) == 0x40;
 			// This should happen LAST, it'll cause issues if it isn't last
+			triggerBit = (data & 0x80) == 0x80;
 			if ((data & 0x80) == 0x80) {
 				trigger();
 			}

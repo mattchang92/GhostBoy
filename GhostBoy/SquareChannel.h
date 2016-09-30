@@ -47,6 +47,8 @@ private:
 	uint8_t sweepShift = 0;
 	uint16_t sweepShadow = 0;
 	bool sweepEnable = false;
+	// Keeps track of last bit written to trigger
+	bool triggerBit = false;
 
 	bool enabled = false;
 	bool dacEnabled = true;	// Seperate from the other enabled, controlled by high 5 bits of nr2

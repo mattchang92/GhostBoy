@@ -50,8 +50,7 @@ uint8_t Memory::readByte(uint16_t address)
 	}
 	// Sound registers
 	else if (address >= 0xFF10 && address <= 0xFF3F) {
-		// TODO: Sound stuff. Return 00 for now (some games lock checking sound state if we return 0xFF).
-		returnVal = 0x00;
+		returnVal = apu->recieveData(address);
 	}
 	// GPU registers
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
