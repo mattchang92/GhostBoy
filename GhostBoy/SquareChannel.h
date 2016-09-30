@@ -14,6 +14,7 @@ public:
 	void lengthClck();
 	void envClck();
 	void sweepClck();
+	bool getRunning();
 
 private:
 	// Trigger function

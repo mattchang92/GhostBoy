@@ -149,9 +149,6 @@ void SquareChannel::envClck()
 		if (envelopePeriod == 0) {
 			envelopePeriod = 8;		// Some obscure behavior, But I don't understand this behavior at all..
 		}
-		if (volume == 0 || volume == 15) {
-			envelopeRunning = false;
-		}
 		// Should envelopePeriod > 0 be here?
 		if (envelopeRunning && envelopePeriodLoad > 0) {
 			if (envelopeAddMode && volume < 15) {
@@ -160,6 +157,9 @@ void SquareChannel::envClck()
 			else if (!envelopeAddMode && volume > 0) {
 				volume--;
 			}
+		}
+		if (volume == 0 || volume == 15) {
+			envelopeRunning = false;
 		}
 	}
 }
@@ -195,6 +195,11 @@ void SquareChannel::sweepClck()
 			sweepCalculation();
 		}
 	}
+}
+
+bool SquareChannel::getRunning()
+{
+	return lengthCounter > 0;
 }
 
 uint16_t SquareChannel::sweepCalculation()

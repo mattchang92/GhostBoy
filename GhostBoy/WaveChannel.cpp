@@ -16,9 +16,34 @@ WaveChannel::~WaveChannel()
 uint8_t WaveChannel::readRegister(uint16_t address)
 {
 	// Eh
-	uint8_t returnVal = 0;
+	uint8_t returnData = 0;
 
-	return returnVal;
+	uint8_t registerVal = address & 0xF;
+	if (address >= 0xFF1A && address <= 0xFF1E) {
+		switch (registerVal) {
+		case 0xA:
+			returnData = (dacEnabled) << 7;
+			break;
+		case 0xB:
+			returnData = lengthLoad;
+			break;
+		case 0xC:
+			returnData = volumeCode << 5;
+			break;
+		case 0xD:
+			returnData = timerLoad & 0xFF;
+			break;
+		case 0xE:
+			returnData = ((timerLoad >> 8) & 0x7) | (lengthEnable << 6) | (triggerBit << 7);	// Trigger bit probably?
+			break;
+		}
+	}
+	// wave ram
+	else if (address >= 0xFF30 && address <= 0xFF3F) {
+		returnData = waveTable[registerVal];
+	}
+
+	return returnData;
 }
 
 void WaveChannel::writeRegister(uint16_t address, uint8_t data)
@@ -102,6 +127,11 @@ void WaveChannel::lengthClck()
 uint8_t WaveChannel::getOutputVol()
 {
 	return outputVol;
+}
+
+bool WaveChannel::getRunning()
+{
+	return lengthCounter > 0;
 }
 
 void WaveChannel::trigger()

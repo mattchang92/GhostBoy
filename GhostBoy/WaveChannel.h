@@ -1,4 +1,4 @@
-#include<stdint.h>
+#include <stdint.h>
 
 #pragma once
 class WaveChannel
@@ -12,12 +12,13 @@ public:
 	void step();
 	void lengthClck();
 	uint8_t getOutputVol();
+	bool getRunning();
 
 private:
 	// Wave Table ram, 16 entries, 32 samples in total (4 bits per sample).
 	uint8_t waveTable[16] = { 0 };
 	// Registers
-	uint16_t lengthLoad = 0;
+	uint8_t lengthLoad = 0;
 	uint8_t volumeCode = 0;
 	// Timer aka Frequency
 	uint16_t timerLoad = 0;

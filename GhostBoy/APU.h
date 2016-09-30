@@ -5,8 +5,9 @@
 #include "SDL.h"
 #include "SquareChannel.h"
 #include "WaveChannel.h"
+#include "NoiseChannel.h"
 
-#define samplesize 512
+#define samplesize 1024
 
 using namespace std;
 
@@ -33,17 +34,25 @@ private:
 										0x7f,0xff,0x9f,0xff,0xbf,
 										0xff,0xff,0x00,0x00,0xbf,
 										0x00,0x00,0x70 };
+	// APU Universal registers
+	bool vinLeftEnable = false;
+	uint8_t leftVol = 0;
+	bool vinRightEnable = false;
+	uint8_t rightVol = 0;
+	bool leftEnables[4] = { false };
+	bool rightEnables[4] = { false };
+	bool powerControl = false;
+
 	// The 4 channels
 	SquareChannel squareOne;
 	SquareChannel squareTwo;
 	WaveChannel waveChannel;
+	NoiseChannel noiseChannel;
 	//APUChannel squareOne;
 	int frameSequenceCountDown = 8192;
 	int downSampleCount = 95;
 	int bufferFillAmount = 0;
-	float squareBuffer0[samplesize] = { 0 };
-	float squareBuffer1[samplesize] = { 0 };
-	float waveBuffer[samplesize] = { 0 };
+	float mainBuffer[samplesize] = { 0 };
 	bool buffer0Ready = false;
 	bool buffer1Ready = false;
 	unsigned int buffer0Amount = 0;
