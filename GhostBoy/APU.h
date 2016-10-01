@@ -53,16 +53,6 @@ private:
 	int downSampleCount = 95;
 	int bufferFillAmount = 0;
 	float mainBuffer[samplesize] = { 0 };
-	bool buffer0Ready = false;
-	bool buffer1Ready = false;
-	unsigned int buffer0Amount = 0;
-	unsigned int buffer1Amount = 0;
-	unsigned int currentBuffer = 0;
-	//uint8_t* currentBuffer = squareBuffer1;
-	//uint8_t* currentBufferFinished = NULL;
-	int stepCount = 0;
-	bool bufferReady = false;
 	uint8_t frameSequencer = 0;
-	//ofstream foo;
 };
 

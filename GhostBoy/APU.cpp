@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 
-APU::APU()// : foo("./output.bin", ios::out | ios::binary)
+APU::APU()
 {
 	// Set up SDL audio spec
 	SDL_AudioSpec audioSpec;
@@ -200,32 +200,6 @@ void APU::step(int cycles)
 
 		if (--downSampleCount <= 0) {
 			downSampleCount = 95;
-			/*float bufferin1 = ((float)squareOne.getOutputVol()) / 100;
-			float bufferin2 = ((float)squareTwo.getOutputVol()) / 100;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin2, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
-			float bufferin3 = ((float)waveChannel.getOutputVol()) / 100;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin3, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);*/
-			//float bufferin1 = ((float)waveChannel.getOutputVol()) / 100;
-			// Try another conversioon
-			/*float bufferin1 = ((float)squareOne.getOutputVol()) / 15;
-			float bufferin2 = ((float)squareTwo.getOutputVol()) / 15;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin2, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
-			float bufferin3 = ((float)waveChannel.getOutputVol()) / 15;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin3, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);*/
-
-			//float bufferin1 = ((float)noiseChannel.getOutputVol()) / 100;
-
-			/*float bufferin1 = ((float)squareOne.getOutputVol()) / 100;
-			float bufferin2 = ((float)squareTwo.getOutputVol()) / 100;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin2, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
-			float bufferin3 = ((float)waveChannel.getOutputVol()) / 100;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin3, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
-			float bufferin4 = ((float)noiseChannel.getOutputVol()) / 100;
-			SDL_MixAudioFormat((Uint8*)&bufferin1, (Uint8*)&bufferin4, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME);
-
-			mainBuffer[bufferFillAmount] = bufferin1;
-			mainBuffer[bufferFillAmount + 1] = bufferin1;
-			bufferFillAmount += 2;*/
 
 			// Left
 			float bufferin0 = 0;

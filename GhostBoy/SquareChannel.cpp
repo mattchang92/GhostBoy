@@ -232,7 +232,6 @@ void SquareChannel::trigger()
 	envelopeRunning = true;
 	envelopePeriod = envelopePeriodLoad;
 	volume = volumeLoad;
-	// TODO: Square 1 sweeps
 	// Sweep trigger stuff
 	sweepShadow = timerLoad;
 	sweepPeriod = sweepPeriodLoad;
