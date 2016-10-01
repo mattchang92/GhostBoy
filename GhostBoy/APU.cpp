@@ -255,23 +255,10 @@ void APU::step(int cycles)
 			//printf("%d\n", SDL_GetQueuedAudioSize(1));
 			SDL_QueueAudio(1, mainBuffer, samplesize*sizeof(float));
 		}
-		stepCount++;	// I'd be worried about this overflowing
 	}
 }
 
 int APU::getBufferFillAmount()
 {
 	return bufferFillAmount;
-}
-
-uint8_t * APU::getSquareBuffer()
-{
-	return NULL;
-}
-
-bool APU::getBufferReady()
-{
-	bool returnBool = bufferReady;
-	bufferReady = false;
-	return returnBool;
 }

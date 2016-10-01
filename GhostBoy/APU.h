@@ -21,11 +21,7 @@ public:
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
 	void step(int cycles);
-	static void audio_callback(void *userdata, Uint8 *stream, int len);
-	void playSound();
 	int getBufferFillAmount();
-	uint8_t* getSquareBuffer();
-	bool getBufferReady();
 
 private:
 	// Values OR'd into register reads.
