@@ -204,7 +204,7 @@ void APU::step(int cycles)
 			// Left
 			float bufferin0 = 0;
 			float bufferin1 = 0;
-			int volume = leftVol * 18;	// Approximate with SDLs audio volume (max SDL is 128, max GB is 7, 7 * 128 = 126).
+			int volume = (128*leftVol)/7;	// Should approximate an integer for the mixer volume
 			if (leftEnables[0]) {
 				bufferin1 = ((float)squareOne.getOutputVol()) / 100;
 				SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
@@ -225,7 +225,7 @@ void APU::step(int cycles)
 
 			// Right
 			bufferin0 = 0;
-			volume = leftVol * 18;	// Approximate with SDLs audio volume (max SDL is 128, max GB is 7, 7 * 128 = 126).
+			volume = (128 * leftVol) / 7;
 			if (rightEnables[0]) {
 				bufferin1 = ((float)squareOne.getOutputVol()) / 100;
 				SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
@@ -252,13 +252,7 @@ void APU::step(int cycles)
 			while ((SDL_GetQueuedAudioSize(1)) > samplesize * sizeof(float)) {
 				SDL_Delay(1);
 			}
-			//printf("%d\n", SDL_GetQueuedAudioSize(1));
 			SDL_QueueAudio(1, mainBuffer, samplesize*sizeof(float));
 		}
 	}
-}
-
-int APU::getBufferFillAmount()
-{
-	return bufferFillAmount;
 }

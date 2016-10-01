@@ -21,7 +21,6 @@ public:
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
 	void step(int cycles);
-	int getBufferFillAmount();
 
 private:
 	// Values OR'd into register reads.

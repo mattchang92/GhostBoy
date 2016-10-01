@@ -36,7 +36,7 @@ private:
 	bool dacEnabled = false;
 	uint8_t lengthCounter = 0;
 	uint8_t volume = 0;
-	uint8_t envelopePeriod = 0;
+	int envelopePeriod = 0;
 	uint16_t lfsr = 0;	// Linear feedback shift register
 	bool envelopeRunning = false;
 	uint8_t outputVol = 0;

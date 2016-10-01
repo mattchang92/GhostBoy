@@ -106,11 +106,8 @@ void NoiseChannel::step()
 
 void NoiseChannel::envClck()
 {
-	if (envelopePeriod > 0) {
-		envelopePeriod--;
-	}
 	// Envelope tick when it's zero
-	else {
+	if (--envelopePeriod <= 0) {
 		// Reload period
 		// does this loop or?
 		envelopePeriod = envelopePeriodLoad;

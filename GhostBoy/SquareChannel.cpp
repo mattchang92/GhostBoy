@@ -136,13 +136,8 @@ void SquareChannel::lengthClck()
 
 void SquareChannel::envClck()
 {
-	// I'm not sure what triggers the envelope? Maybe just the trigger bit?
-
-	if (envelopePeriod > 0) {
-		envelopePeriod--;
-	}
 	// Envelope tick when it's zero
-	else {
+	if(--envelopePeriod <= 0){
 		// Reload period
 		// does this loop or?
 		envelopePeriod = envelopePeriodLoad;
@@ -177,10 +172,7 @@ void SquareChannel::sweepClck()
 	// then frequency calculation and overflow check are run AGAIN immediately using this new value, but this second new frequency is not written back.
 
 	// Square 1's frequency can be modified via NR13 and NR14 while sweep is active, but the shadow frequency won't be affected so the next time the sweep updates the channel's frequency this modification will be lost. 
-	if (sweepPeriod > 0) {
-		sweepPeriod--;
-	}
-	else {
+	if (--sweepPeriod <= 0) {
 		sweepPeriod = sweepPeriodLoad;
 		if (sweepPeriod == 0) {
 			sweepPeriod = 8;

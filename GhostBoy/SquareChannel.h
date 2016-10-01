@@ -40,10 +40,10 @@ private:
 	uint8_t lengthCounter;
 	bool envelopeAddMode = false;
 	uint8_t envelopePeriodLoad = 0;
-	uint8_t envelopePeriod = 0;
+	int envelopePeriod = 0;
 	// Sweep
 	uint8_t sweepPeriodLoad = 0;
-	uint8_t sweepPeriod = 0;
+	int sweepPeriod = 0;
 	bool sweepNegate = false;
 	uint8_t sweepShift = 0;
 	uint16_t sweepShadow = 0;
