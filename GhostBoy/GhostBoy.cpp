@@ -78,6 +78,7 @@ int main(int argc, char* argv[])
 				bootstrapstream.read((&oneByte), 1);
 				bootstrap[i] = (uint8_t)oneByte;
 			}
+			bootstrapstream.close();
 			mainMem.setBootstrap(bootstrap);
 			CPU.resetGBBios();
 		}

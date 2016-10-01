@@ -93,6 +93,7 @@ void NoiseChannel::step()
 		lfsr >>= 1;
 		lfsr |= result << 14;
 		if (widthMode) {
+			lfsr &= ~0x40;
 			lfsr |= result << 6;
 		}
 		if (enabled && dacEnabled && (lfsr & 0x1) == 0) {
@@ -155,7 +156,7 @@ void NoiseChannel::trigger()
 	if (lengthCounter == 0) {
 		lengthCounter = 64;
 	}
-	timer = (divisors[divisorCode] << clockShift) * 1;
+	timer = divisors[divisorCode] << clockShift;
 	envelopePeriod = envelopePeriodLoad;
 	envelopeRunning = true;
 	volume = volumeLoad;
