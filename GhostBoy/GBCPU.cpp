@@ -108,6 +108,20 @@ void GBCPU::resetGBNoBios() {
 	mainMem->writeByte(0xFF49, 0xFF);
 }
 
+void GBCPU::resetGBBios()
+{
+	reg_A = 0x00;
+	reg_F = 0x00;
+	reg_B = 0x00;
+	reg_C = 0x00;
+	reg_D = 0x00;
+	reg_E = 0x00;
+	reg_H = 0x00;
+	reg_L = 0x00;
+	reg_PC = 0x00;
+	reg_SP = 0x00;
+}
+
 void GBCPU::executeOneInstruction() {
 	if (reg_PC == 0x2377) {
 		//printf("break ");

@@ -18,7 +18,13 @@ uint8_t Memory::readByte(uint16_t address)
 	uint8_t returnVal = 0xFF;
 	// Cartridge space
 	if (address >= 0x0000 && address <= 0x7FFF) {
-		returnVal = gbCart->recieveData(address);
+		// Return bootstrap data if it's active and we're reading in the bootstrap region.
+		if (bootStrapActive && address < 0x100) {
+			returnVal = bootstrap[address];
+		}
+		else {
+			returnVal = gbCart->recieveData(address);
+		}
 	}
 	// VRAM
 	else if (address >= 0x8000 && address <= 0x9FFF) {
@@ -127,6 +133,12 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 			gbgpu->sendData(address, data);
 		}
 	}
+	// Bootstrap unmap
+	else if (address == 0xFF50) {
+		if (data == 0x1) {
+			bootStrapActive = false;
+		}
+	}
 	// High RAM area
 	else if (address >= 0xFF80 && address <= 0xFFFE) {
 		highRAM[address & 0x7f] = data;
@@ -150,4 +162,10 @@ void Memory::writeWord(uint16_t address, uint16_t data)
 
 void Memory::writeByteNoProtect(uint16_t address, uint8_t data)
 {
+}
+
+void Memory::setBootstrap(uint8_t* bootstrapIn)
+{
+	bootStrapActive = true;
+	bootstrap = bootstrapIn;
 }

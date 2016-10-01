@@ -8,6 +8,7 @@ public:
 	GBCPU(Memory &mainMem);
 	~GBCPU();
 	void resetGBNoBios();
+	void resetGBBios();
 	void executeOneInstruction();
 	//void resetGBWithBios();
 	void test();

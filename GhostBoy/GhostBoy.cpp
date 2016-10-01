@@ -67,7 +67,28 @@ int main(int argc, char* argv[])
 	int vblankCount = 0;
 	
 
-	CPU.resetGBNoBios();
+	// Check if bootstrap file is present. If it is, load it in, if not, skip the bootstrap.
+	ifstream bootstrapstream("boot.rom", ios::in | ios::binary | ios::ate);
+	if (bootstrapstream.is_open()) {
+		if ((int)bootstrapstream.tellg() == 0x100) {
+			bootstrapstream.seekg(0, ios::beg);
+			uint8_t bootstrap[0x100];
+			for (int i = 0; i < 0x100; i++) {
+				char oneByte;
+				bootstrapstream.read((&oneByte), 1);
+				bootstrap[i] = (uint8_t)oneByte;
+			}
+			mainMem.setBootstrap(bootstrap);
+			CPU.resetGBBios();
+		}
+		else {
+			cout << "Error: Bootstrap rom is invalid size. Skipping\n";
+			CPU.resetGBNoBios();
+		}
+	}
+	else {
+		CPU.resetGBNoBios();
+	}
 
 	// Main loop
 	bool running = true;
