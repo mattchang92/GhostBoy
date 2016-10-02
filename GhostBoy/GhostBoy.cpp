@@ -17,8 +17,6 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	//Cartridge gbCart("roms/cpu_instrs/individual/09-op r,r.gb", false);
-	//Cartridge gbCart("roms/cpu_instrs/cpu_instrs.gb", false);
 	// Handle arguments
 	string romFilePath = "";
 	int screenMultiplier = 2;
@@ -44,7 +42,6 @@ int main(int argc, char* argv[])
 	}
 
 	// Creat obbjects
-	//Cartridge gbCart(romFilePath, false);
 	Cartridge* gbCart = Cartridge::getCartridge(romFilePath);
 	Interrupts interrupts;
 	Timer timer(interrupts);

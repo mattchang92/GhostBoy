@@ -415,6 +415,12 @@ void GBGPU::renderScanline() {
 	if (LCDC & 0x02) {
 		renderSpriteLine();
 	}
+	else {
+		// Fill BG colors
+		for (int i = 0; i < 160; i++) {
+			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
+		}
+	}
 
 
 	// Declare BG pixels pointer/array
@@ -462,7 +468,7 @@ void GBGPU::renderBGLine() {
 		int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
 			((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
 
-		lineBuffer[i] = (BGP >> (2*pixelData)) & 0x3;
+		lineBuffer[i] = pixelData;
 	}
 }
 
@@ -538,6 +544,10 @@ void GBGPU::renderSpriteLine() {
 	}
 
 	if (spriteCount == 0) {
+		// Fill BG colors
+		for (int i = 0; i < 160; i++) {
+			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
+		}
 		return;
 	}
 
@@ -600,6 +610,10 @@ void GBGPU::renderSpriteLine() {
 		// Either the sprite is always in front, or there's a 0 pixel there (meaning 
 		if ((!priorityValues[i] || lineBuffer[i] == 0) && spriteLineBuffer[i] != -1) {
 			lineBuffer[i] = spriteLineBuffer[i];
+		}
+		else {
+			// Fill BG colors
+			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
 		}
 	}
 }
