@@ -79,10 +79,7 @@ void NoiseChannel::writeRegister(uint16_t address, uint8_t data)
 
 void NoiseChannel::step()
 {
-	if (timer >= 0) {
-		timer--;
-	}
-	else {
+	if (--timer <= 0) {
 		timer = divisors[divisorCode] << clockShift;	// odd
 
 		//It has a 15 - bit shift register with feedback.When clocked by the frequency timer, the low two bits(0 and 1) are XORed, 

@@ -98,10 +98,7 @@ void SquareChannel::writeRegister(uint16_t address, uint8_t data)
 
 void SquareChannel::step()
 {
-	if (timer >= 0) {
-		timer--;
-	}
-	else {
+	if (--timer <= 0) {
 		//timer = timerLoad;
 		timer = (2048 - timerLoad) * 4;	// ???
 		sequencePointer = (sequencePointer + 1) & 0x7;

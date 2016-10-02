@@ -82,10 +82,7 @@ void WaveChannel::writeRegister(uint16_t address, uint8_t data)
 
 void WaveChannel::step()
 {
-	if (timer >= 0) {
-		timer--;
-	}
-	else {
+	if (--timer <= 0) {
 		timer = (2048 - timerLoad) * 2;
 		// Should increment happen before or after?
 		positionCounter = (positionCounter + 1) & 0x1F;
