@@ -66,21 +66,24 @@ void APU::sendData(uint16_t address, uint8_t data)
 			case 0x26:
 				// I don't think writing to length statues does anything
 				// Power control
-				powerControl = (data & 0x80) == 0x80;
+				
 				// Shut off event loop
 				// Writes 0 to every register besides this one
-				if (!powerControl) {
+				if ((data & 0x80) != 0x80) {
 					for (int i = 0xFF10; i <= 0xFF25; i++) {
 						sendData(i, 0);
 					}
+					powerControl = false;
 				}
-				else {
+				// Only turn on if powerControl was previously off
+				else if (!powerControl) {
 					// Turn on event resets channels, probably do that later.
 					frameSequencer = 0;
 					// Reset wave table
 					for (int i = 0; i < 16; i++) {
 						waveChannel.writeRegister(0xFF30 | i, 0);
 					}
+					powerControl = true;
 				}
 				break;
 		}

@@ -99,7 +99,7 @@ void WaveChannel::step()
 				outputByte >>= 4;
 			}
 			outputByte &= 0xF;
-			// Handle voluem code. 0 shouldn't occur.
+			// Handle volume code. 0 shouldn't occur.
 			if (volumeCode > 0) {
 				outputByte >>= volumeCode - 1;
 			}
