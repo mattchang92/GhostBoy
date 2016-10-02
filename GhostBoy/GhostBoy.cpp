@@ -121,6 +121,9 @@ int main(int argc, char* argv[])
 			gbgpu.renderScreen(window, ren);
 		}
 	}
+
+	// Run gbCart save for fallback
+	gbCart->saveBatteryData();
 	
     return 0;
 }
