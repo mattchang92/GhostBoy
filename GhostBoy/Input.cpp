@@ -16,15 +16,6 @@ Input::~Input()
 
 void Input::pollControl(uint8_t data) {
 	P1Data = (P1Data & 0xF)|(data & 0x30);
-	if ((P1Data & 0x10) == 0) {
-		controlMode = false;
-	}
-	else if ((P1Data & 0x20) == 0) {
-		controlMode = true;
-	}
-	else {
-		P1Data &= 0xF0;
-	}
 }
 
 uint8_t Input::recieveData() {
@@ -33,7 +24,7 @@ uint8_t Input::recieveData() {
 	const uint8_t *keys = SDL_GetKeyboardState(NULL);
 
 	// P14
-	if (!controlMode) {
+	if ((P1Data & 0x30) == 0x20) {
 		// Right
 		controlBits |= (keys[SDL_SCANCODE_RIGHT] ? 0 : 1) << 0;
 		// Left
@@ -44,7 +35,7 @@ uint8_t Input::recieveData() {
 		controlBits |= (keys[SDL_SCANCODE_DOWN] ? 0 : 1) << 3;
 	}
 	// P15
-	else {
+	else if ((P1Data & 0x30) == 0x10){
 		// A
 		controlBits |= (keys[SDL_SCANCODE_S] ? 0 : 1) << 0;
 		// B
@@ -53,6 +44,9 @@ uint8_t Input::recieveData() {
 		controlBits |= (keys[SDL_SCANCODE_BACKSPACE] ? 0 : 1) << 2;
 		// Start
 		controlBits |= (keys[SDL_SCANCODE_RETURN] ? 0 : 1) << 3;
+	}
+	else {
+		controlBits = 0xF;
 	}
 	P1Data &= 0xF0;
 	P1Data |= controlBits;
