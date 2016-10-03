@@ -1,5 +1,5 @@
 #include "MBC3.h"
-
+#include <ctime>
 
 
 MBC3::MBC3(uint8_t* romData, unsigned int romSize, unsigned int ramSize):romData(romData), romSize(romSize), ramSize(ramSize)
@@ -35,6 +35,7 @@ void MBC3::sendData(uint16_t address, uint8_t data)
 	}
 	else if (address >= 0x6000 && address <= 0x7FFF) {
 		// TODO: RTC
+		//cout << "Clock Latch...\n";
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
 		if (ramEnable && ramSize > 0) {
@@ -67,6 +68,39 @@ uint8_t MBC3::recieveData(uint16_t address)
 			}
 			else {
 				// TODO: RTC
+				std::time_t time;
+				struct tm now;
+				if (RAMRTCselect >= 0x8) {
+					time = std::time(nullptr);
+					localtime_s(&now, &time);
+					//cout << now.tm_sec << " " << now.tm_min << ' ' << now.tm_hour << "\n";
+					/*cout << (now.tm_year + 1900) << '-'
+						<< (now.tm_mon + 1) << '-'
+						<< now.tm_mday
+						<< endl;*/
+				}
+				switch (RAMRTCselect) {
+					// Seconds
+					case 0x8:
+						return now.tm_sec;
+						break;
+					// Minutes
+					case 0x9:
+						return now.tm_min;
+						break;
+					// Hours
+					case 0xA:
+						return now.tm_hour;
+						break;
+					// Days (lower)
+					case 0xB:
+						return now.tm_yday;
+						break;
+					// Days (upper), halt, Day carry
+					case 0xC:
+						return 0;
+						break;
+				}
 			}
 		}
 	}
