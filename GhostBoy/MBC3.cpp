@@ -1,10 +1,14 @@
 #include "MBC3.h"
-#include <ctime>
 
 
-MBC3::MBC3(uint8_t* romData, unsigned int romSize, unsigned int ramSize):romData(romData), romSize(romSize), ramSize(ramSize)
+MBC3::MBC3(uint8_t* romData, unsigned int romSize, unsigned int ramSize, bool timerPresent):romData(romData), romSize(romSize), ramSize(ramSize), RTC(timerPresent)
 {
-	extRAM = new uint8_t[ramSize];
+	if (!RTC) {
+		extRAM = new uint8_t[ramSize];
+	}
+	else {
+		extRAM = new uint8_t[ramSize+48];
+	}
 }
 
 
@@ -34,8 +38,10 @@ void MBC3::sendData(uint16_t address, uint8_t data)
 		RAMRTCselect = data % 0xD;
 	}
 	else if (address >= 0x6000 && address <= 0x7FFF) {
-		// TODO: RTC
-		//cout << "Clock Latch...\n";
+		if (!latch && (data & 0x1) == 0x1) {
+			latchTimer();
+		}
+		latch = (data & 0x1) == 0x1;
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
 		if (ramEnable && ramSize > 0) {
@@ -44,7 +50,33 @@ void MBC3::sendData(uint16_t address, uint8_t data)
 				ramNewData = true;
 			}
 			else {
-				// TODO: RTC
+				if (RAMRTCselect >= 0x8 && RAMRTCselect <= 0xC) {
+					// Keep timer up-to-date before a write
+					updateTimer();
+					// I'm assuming writes here only reflect on the real time registers?
+					switch (RAMRTCselect) {
+						// Seconds
+					case 0x8:
+						realSecs = data;
+						break;
+						// Minutes
+					case 0x9:
+						realMins = data;
+						break;
+						// Hours
+					case 0xA:
+						realHours = data;
+						break;
+						// Days (lower)
+					case 0xB:
+						realDays = data;
+						break;
+						// Days (upper), halt, Day carry
+					case 0xC:
+						realDaysHi = data;
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -67,38 +99,26 @@ uint8_t MBC3::recieveData(uint16_t address)
 				return extRAM[((address & 0x1FFF) | (RAMRTCselect << 13)) & (ramSize - 1)];
 			}
 			else {
-				// TODO: RTC
-				std::time_t time;
-				struct tm now;
-				if (RAMRTCselect >= 0x8) {
-					time = std::time(nullptr);
-					localtime_s(&now, &time);
-					//cout << now.tm_sec << " " << now.tm_min << ' ' << now.tm_hour << "\n";
-					/*cout << (now.tm_year + 1900) << '-'
-						<< (now.tm_mon + 1) << '-'
-						<< now.tm_mday
-						<< endl;*/
-				}
 				switch (RAMRTCselect) {
 					// Seconds
 					case 0x8:
-						return now.tm_sec;
+						return latchSecs;
 						break;
 					// Minutes
 					case 0x9:
-						return now.tm_min;
+						return latchMins;
 						break;
 					// Hours
 					case 0xA:
-						return now.tm_hour;
+						return latchHours;
 						break;
 					// Days (lower)
 					case 0xB:
-						return now.tm_yday;
+						return latchDays;
 						break;
 					// Days (upper), halt, Day carry
 					case 0xC:
-						return 0;
+						return latchDaysHi;
 						break;
 				}
 			}
@@ -111,14 +131,116 @@ void MBC3::setBatteryLocation(string inBatteryPath)
 {
 	battery = true;
 	batteryPath = inBatteryPath;
-	if (!Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
+	if (!RTC && !Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
 		battery = false;	// Disable battery if load wasn't sucessful;
+	}
+	// Hackish way of reading in timer values from file (will result in 1 error though).
+	else if (RTC && Cartridge::loadBatteryFile(extRAM, ramSize+48, batteryPath)){
+		// We'll have some RTC values available at the end of extRAM array.
+		unsigned int offset = ramSize;
+		// "Real" time
+		// Thanks to whoever decided these should be 4-byte little endians
+		realSecs = extRAM[offset];
+		realMins = extRAM[offset+4];
+		realHours = extRAM[offset+8];
+		realDays = extRAM[offset+12];
+		realDaysHi = extRAM[offset+16];
+		// Latched time
+		latchSecs = extRAM[offset+20];
+		latchMins = extRAM[offset + 24];
+		latchHours = extRAM[offset + 28];
+		latchDays = extRAM[offset + 32];
+		latchDaysHi = extRAM[offset + 36];
+		// Saved unix time
+		for (int i = 0; i < 8; i++) {
+			currentTime |= (extRAM[offset + 40 + i]) << (8 * i);
+		}
+		// Update the timer now
+		updateTimer();
+	}
+	else {
+		battery = false;
+		cout << "\nERROR: Save File does not contain timer values...\n";
 	}
 }
 
 void MBC3::saveBatteryData()
 {
-	if (battery) {
+	if (battery && !RTC) {
 		Cartridge::saveBatteryFile(extRAM, ramSize, batteryPath);
 	}
+	else if (battery && RTC) {
+		// Update timer
+		updateTimer();
+		// Put timer values on array before writing
+		unsigned int offset = ramSize;
+
+		// Real time
+		extRAM[offset] = realSecs;
+		extRAM[offset + 4] = realMins;
+		extRAM[offset + 8] = realHours;
+		extRAM[offset + 12] = realDays;
+		extRAM[offset + 16] = realDaysHi;
+		// Latched
+		extRAM[offset + 20] = latchSecs;
+		extRAM[offset + 24] = latchMins;
+		extRAM[offset + 28] = latchHours;
+		extRAM[offset + 32] = latchDays;
+		extRAM[offset + 36] = latchDaysHi;
+		// Unix time
+		for (int i = 0; i < 8; i++) {
+			extRAM[offset + 40 + i] = (uint8_t)(currentTime >> (8 * i));
+		}
+	}
+}
+
+void MBC3::updateTimer()
+{
+	// Get the new unix time
+	time_t newTime = time(nullptr);
+	// Time difference in seconds
+	unsigned int difference = 0;
+	// Return if we either are trying to "travel back in time" or if timer halt bit is set
+	// Update the stored timer value in either case
+	if (newTime > currentTime && (realDaysHi & 0x40) != 0x40) {
+		difference = (unsigned int)(newTime - currentTime);
+		currentTime = newTime;
+	}
+	else {
+		currentTime = newTime;
+		return;
+	}
+	// Perform the incrementing calculations, on the "realtime" values.
+	// Hope my idea is right here
+	// First seconds
+	unsigned int newSeconds = realSecs + difference;
+	realSecs = newSeconds % 60;
+	// Minutes
+	unsigned int newMins = realMins + (newSeconds / 60);
+	realMins = newMins % 60;
+	// Hours
+	unsigned int newHours = realHours + (newMins / 60);
+	realHours = newHours % 24;
+	// Days
+	// Accounts for high bit.
+	unsigned int newDays = (((realDaysHi & 0x1) << 8)|realDays) + (newHours / 24);
+	realDays = newDays;	// Low 8-bits applies
+	// High bit on days counter
+	realDaysHi &= 0xFE;
+	realDaysHi |= (newDays >> 8) & 0x1;	// Applies the 8th bit
+	// Overflow bit
+	if (newDays > 511) {
+		realDaysHi |= 0x80;
+	}
+
+}
+
+void MBC3::latchTimer()
+{
+	updateTimer();
+	latchSecs = realSecs;
+	latchMins = realMins;
+	latchHours = realHours;
+	latchDays = realDays;
+	latchDaysHi = realDaysHi;
 }

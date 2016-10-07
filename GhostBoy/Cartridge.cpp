@@ -88,24 +88,24 @@ Cartridge *Cartridge::getCartridge(string romPath)
 	// MBC3s
 	case 0x0F:
 		cout << "MBC3+TIMER+BATTERY";
-		returnCart = new MBC3(romData, romSize, 0);	// Does this one have no onboard RAM?
+		returnCart = new MBC3(romData, romSize, 0, true);	// Does this one have no onboard RAM?
 		break;
 	case 0x10:
 		cout << "MBC3+TIMER+RAM+BATTERY";
-		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize]);
+		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize], true);
 		returnCart->setBatteryLocation(batteryPath);
 		break;
 	case 0x11:
 		cout << "MBC3";
-		returnCart = new MBC3(romData, romSize, 0);
+		returnCart = new MBC3(romData, romSize, 0, false);
 		break;
 	case 0x12:
 		cout << "MBC3+RAM";
-		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize]);
+		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize], false);
 		break;
 	case 0x13:
 		cout << "MBC3+RAM+BATTERY";
-		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize]);
+		returnCart = new MBC3(romData, romSize, ramSizes[headerRAMSize], false);
 		returnCart->setBatteryLocation(batteryPath);
 		break;
 	// MBC5s
