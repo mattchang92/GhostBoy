@@ -194,6 +194,7 @@ bool Cartridge::loadBatteryFile(uint8_t * extRAM, unsigned int ramSize, string i
 			success = true;
 		}
 		else {
+			cout << "\nError: Opened save file doesn't match defined RAM size. Battery will not be saved";	// Probaly handle this better
 			for (unsigned int i = 0; i < ramSize; i++) {
 				extRAM[i] = 0;
 			}

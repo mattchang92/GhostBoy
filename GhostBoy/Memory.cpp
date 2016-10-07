@@ -107,6 +107,10 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
 		gbgpu->sendData(address, data);
 	}
+	// Serial Byte
+	else if (address == 0xFF01) {
+		serialByte = data;
+	}
 	// Timer registers
 	else if (address >= 0xFF04 && address <= 0xFF07) {
 		timer->sendData(address, data);
@@ -149,7 +153,7 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	}
 	else{
 		if (address == 0xFF02 && data == 0x81) {
-			cout << readByte(0xFF01);
+			cout << char(serialByte);
 		}
 	}
 }

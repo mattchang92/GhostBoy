@@ -33,4 +33,5 @@ private:
 	uint8_t highRAM[0x7F] = {0};			// 127 Bytes high-ram
 	bool bootStrapActive = false;
 	uint8_t* bootstrap;
+	uint8_t serialByte;
 };
