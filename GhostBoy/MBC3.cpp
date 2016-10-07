@@ -155,6 +155,10 @@ void MBC3::setBatteryLocation(string inBatteryPath)
 		for (int i = 0; i < 8; i++) {
 			currentTime |= (extRAM[offset + 40 + i]) << (8 * i);
 		}
+		// If the time is 0, it's probably a new file. Or you're from the 70s.
+		if (currentTime <= 0) {
+			currentTime = time(nullptr);
+		}
 		// Update the timer now
 		updateTimer();
 	}
@@ -191,6 +195,7 @@ void MBC3::saveBatteryData()
 		for (int i = 0; i < 8; i++) {
 			extRAM[offset + 40 + i] = (uint8_t)(currentTime >> (8 * i));
 		}
+		Cartridge::saveBatteryFile(extRAM, ramSize+48, batteryPath);
 	}
 }
 
