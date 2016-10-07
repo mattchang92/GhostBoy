@@ -1151,7 +1151,7 @@ void GBCPU::decodeExecute(uint8_t instruction) {
 void GBCPU::CBPrefixed(uint8_t instruction) {
 	reg_PC++;
 	// Keep track of cycle count
-	lastCycleCount += cycleCount_CB[instruction];
+	lastCycleCount = cycleCount_CB[instruction];
 	switch (instruction) {
 		// RLC n
 		case 0x00:
@@ -1732,10 +1732,10 @@ void GBCPU::jr(bool condition){
 }
 void GBCPU::call(bool condition) {
 	if (condition) {
-		lastCycleCount = 24;	// 24 cycles if true
 		reg_SP -= 2;
 		mainMem->writeWord(reg_SP, reg_PC + 2);
 		jp(true);
+		lastCycleCount = 24;	// 24 cycles if true
 	}
 	else {
 		reg_PC += 2;
