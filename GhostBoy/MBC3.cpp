@@ -118,5 +118,7 @@ void MBC3::setBatteryLocation(string inBatteryPath)
 
 void MBC3::saveBatteryData()
 {
-	Cartridge::saveBatteryFile(extRAM, ramSize, batteryPath);
+	if (battery) {
+		Cartridge::saveBatteryFile(extRAM, ramSize, batteryPath);
+	}
 }

@@ -514,7 +514,7 @@ void GBGPU::renderWindowLine() {
 			int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
 				((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
 
-			lineBuffer[i] = (BGP >> (2 * pixelData)) & 0x3;
+			lineBuffer[i] = pixelData;
 		}
 	}
 }
