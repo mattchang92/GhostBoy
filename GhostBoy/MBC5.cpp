@@ -55,10 +55,10 @@ uint8_t MBC5::recieveData(uint16_t address)
 
 void MBC5::setBatteryLocation(string inBatteryPath)
 {
-	battery = true;
+	battery = false;
 	batteryPath = inBatteryPath;
-	if (!Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
-		battery = false;	// Disable battery if load wasn't sucessful;
+	if (Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
+		battery = true;	// Disable battery if load wasn't sucessful;
 	}
 }
 

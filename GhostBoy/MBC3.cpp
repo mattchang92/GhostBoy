@@ -38,44 +38,42 @@ void MBC3::sendData(uint16_t address, uint8_t data)
 		RAMRTCselect = data % 0xD;
 	}
 	else if (address >= 0x6000 && address <= 0x7FFF) {
-		if (!latch && (data & 0x1) == 0x1) {
+		if (!latch && (data & 0x1) == 0x1 && RTC) {
 			latchTimer();
 		}
 		latch = (data & 0x1) == 0x1;
 	}
 	else if (address >= 0xA000 && address <= 0xBFFF) {
-		if (ramEnable && ramSize > 0) {
-			if (RAMRTCselect < 4) {
+		if (ramEnable) {
+			if (RAMRTCselect < 4 && ramSize > 0) {
 				extRAM[((address & 0x1FFF) | (RAMRTCselect << 13)) & (ramSize -1)] = data;
 				ramNewData = true;
 			}
-			else {
-				if (RAMRTCselect >= 0x8 && RAMRTCselect <= 0xC) {
-					// Keep timer up-to-date before a write
-					updateTimer();
-					// I'm assuming writes here only reflect on the real time registers?
-					switch (RAMRTCselect) {
-						// Seconds
-					case 0x8:
-						realSecs = data;
-						break;
-						// Minutes
-					case 0x9:
-						realMins = data;
-						break;
-						// Hours
-					case 0xA:
-						realHours = data;
-						break;
-						// Days (lower)
-					case 0xB:
-						realDays = data;
-						break;
-						// Days (upper), halt, Day carry
-					case 0xC:
-						realDaysHi = data;
-						break;
-					}
+			else if (RTC && RAMRTCselect >= 0x8 && RAMRTCselect <= 0xC) {
+				// Keep timer up-to-date before a write
+				updateTimer();
+				// I'm assuming writes here only reflect on the real time registers?
+				switch (RAMRTCselect) {
+					// Seconds
+				case 0x8:
+					realSecs = data;
+					break;
+					// Minutes
+				case 0x9:
+					realMins = data;
+					break;
+					// Hours
+				case 0xA:
+					realHours = data;
+					break;
+					// Days (lower)
+				case 0xB:
+					realDays = data;
+					break;
+					// Days (upper), halt, Day carry
+				case 0xC:
+					realDaysHi = data;
+					break;
 				}
 			}
 		}
@@ -98,7 +96,7 @@ uint8_t MBC3::recieveData(uint16_t address)
 			if (RAMRTCselect < 4 && ramSize > 0) {
 				return extRAM[((address & 0x1FFF) | (RAMRTCselect << 13)) & (ramSize - 1)];
 			}
-			else {
+			else if (RTC && RAMRTCselect >= 0x8 && RAMRTCselect <= 0xC){
 				switch (RAMRTCselect) {
 					// Seconds
 					case 0x8:
@@ -129,13 +127,14 @@ uint8_t MBC3::recieveData(uint16_t address)
 
 void MBC3::setBatteryLocation(string inBatteryPath)
 {
-	battery = true;
+	battery = false;
 	batteryPath = inBatteryPath;
-	if (!RTC && !Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
-		battery = false;	// Disable battery if load wasn't sucessful;
+	if (!RTC && Cartridge::loadBatteryFile(extRAM, ramSize, batteryPath)) {
+		battery = true;	// Disable battery if load wasn't sucessful;
 	}
 	// Hackish way of reading in timer values from file (will result in 1 error though).
 	else if (RTC && Cartridge::loadBatteryFile(extRAM, ramSize+48, batteryPath)){
+		battery = true;
 		// We'll have some RTC values available at the end of extRAM array.
 		unsigned int offset = ramSize;
 		// "Real" time
@@ -162,8 +161,7 @@ void MBC3::setBatteryLocation(string inBatteryPath)
 		// Update the timer now
 		updateTimer();
 	}
-	else {
-		battery = false;
+	else if (RTC) {
 		cout << "\nERROR: Save File does not contain timer values...\n";
 	}
 }
