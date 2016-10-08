@@ -168,8 +168,25 @@ void Memory::writeByteNoProtect(uint16_t address, uint8_t data)
 {
 }
 
-void Memory::setBootstrap(uint8_t* bootstrapIn)
+bool Memory::setBootstrap(ifstream bootstrapstream)
 {
-	bootStrapActive = true;
-	bootstrap = bootstrapIn;
+	if (bootstrapstream.is_open()) {
+		if ((int)bootstrapstream.tellg() == 0x100) {
+			bootstrapstream.seekg(0, ios::beg);
+			for (int i = 0; i < 0x100; i++) {
+				char oneByte;
+				bootstrapstream.read((&oneByte), 1);
+				bootstrap[i] = (uint8_t)oneByte;
+			}
+			bootstrapstream.close();
+			bootStrapActive = true;
+		}
+		else {
+			bootStrapActive = false;
+		}
+	}
+	else {
+		bootStrapActive = false;
+	}
+	return bootStrapActive;
 }
