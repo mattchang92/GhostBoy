@@ -217,16 +217,22 @@ void MBC3::updateTimer()
 	// Hope my idea is right here
 	// First seconds
 	unsigned int newSeconds = realSecs + difference;
+	// If the new time isn't any different, then don't bother executing anymore.
+	if (newSeconds == realSecs) return;
 	realSecs = newSeconds % 60;
 	// Minutes
 	unsigned int newMins = realMins + (newSeconds / 60);
+	if (newMins == realMins) return;
 	realMins = newMins % 60;
 	// Hours
 	unsigned int newHours = realHours + (newMins / 60);
+	if (newHours == realHours) return;
 	realHours = newHours % 24;
 	// Days
 	// Accounts for high bit.
-	unsigned int newDays = (((realDaysHi & 0x1) << 8)|realDays) + (newHours / 24);
+	unsigned int realDaysUnsplit = ((realDaysHi & 0x1) << 8) | realDays;
+	unsigned int newDays = realDaysUnsplit + (newHours / 24);
+	if (newDays == realDaysUnsplit) return;
 	realDays = newDays;	// Low 8-bits applies
 	// High bit on days counter
 	realDaysHi &= 0xFE;
