@@ -17,7 +17,7 @@ public:
 	void writeByte(uint16_t address, uint8_t data);
 	void writeWord(uint16_t address, uint16_t data);
 	void writeByteNoProtect(uint16_t address, uint8_t data);
-	void setBootstrap(uint8_t* bootstrap);
+	bool setBootstrap(ifstream bootstrapstream);
 
 private:
 	// Class pointers
@@ -32,6 +32,6 @@ private:
 	uint8_t RAM[0x2000] = {0};			// 8KB RAM 
 	uint8_t highRAM[0x7F] = {0};			// 127 Bytes high-ram
 	bool bootStrapActive = false;
-	uint8_t* bootstrap;
+	uint8_t bootstrap[0x100];
 	uint8_t serialByte;
 };
