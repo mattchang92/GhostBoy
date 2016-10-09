@@ -28,7 +28,7 @@ uint8_t Memory::readByte(uint16_t address)
 	}
 	// VRAM
 	else if (address >= 0x8000 && address <= 0x9FFF) {
-		returnVal = gbgpu->recieveData(address);
+		returnVal = gbgpu->receiveData(address);
 	}
 	// Cartridge RAM space
 	else if (address >= 0xA000 && address <= 0xBFFF) {
@@ -44,7 +44,7 @@ uint8_t Memory::readByte(uint16_t address)
 	}
 	// OAM
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
-		returnVal = gbgpu->recieveData(address);
+		returnVal = gbgpu->receiveData(address);
 	}
 	// Timer registers
 	else if (address >= 0xFF04 && address <= 0xFF07) {
@@ -60,7 +60,7 @@ uint8_t Memory::readByte(uint16_t address)
 	}
 	// GPU registers
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
-		returnVal = gbgpu->recieveData(address);
+		returnVal = gbgpu->receiveData(address);
 	}
 	// High RAM area
 	else if (address >= 0xFF80 && address <= 0xFFFE) {

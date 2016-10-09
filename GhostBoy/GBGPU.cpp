@@ -88,7 +88,7 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 	}
 }
 
-uint8_t GBGPU::recieveData(uint16_t address) {
+uint8_t GBGPU::receiveData(uint16_t address) {
 	uint8_t returnData = 0;
 
 	if (address >= 0x8000 && address <= 0x9FFF) {
@@ -257,72 +257,6 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 	// Copy background surface to the main surface
 	SDL_BlitSurface(backgroundGlobal, NULL, mainSurface, NULL);
 
-	// Window
-	/*if ((LCDC & 0x20) != 0) {
-		SDL_Surface *window = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
-		for (int i = 0; i < 32; i++) {
-			for (int j = 0; j < 32; j++) {
-				uint16_t tileLocation = 0;
-				// Map could be 0x9800 or 0x9C00
-				if ((LCDC & 0x40) != 0) {
-					tileLocation = recieveData(0x9C00 + (i * 32) + j);
-				}
-				else {
-					tileLocation = recieveData(0x9800 + (i * 32) + j);
-				}
-				if ((LCDC & 0x10) != 0) {
-					drawTile(0x8000 + (tileLocation << 4), window, j * 8, i * 8, true, false, false, BGP);
-				}
-				else {
-					tileLocation = (128 + (int16_t)tileLocation) & 0xff;
-					drawTile(0x8800 + (tileLocation << 4), window, j * 8, i * 8, true, false, false, BGP);
-				}
-			}
-		}
-		SDL_Rect windowRect;
-		windowRect.w = 256;
-		windowRect.h = 256;
-
-		windowRect.x = WX - 7;
-		windowRect.y = WY;
-		SDL_BlitSurface(window, NULL, mainSurface, &windowRect);
-		
-		SDL_FreeSurface(window);
-	}*/
-	// Sprites
-	// Render sprites from OAM, copy to main surface
-	/*bool spriteSize = (LCDC & 0x4) != 0;	// Determine if 8x8 or 8x16, false true
-	for (int i = 0; i < 40; i++) {
-		if((OAM[i*4] > 0 && OAM[i*4] < 160)
-			&& (OAM[(i * 4) + 1] > 0 && OAM[(i * 4) + 1] < 168)) {
-			SDL_Surface *sprite;
-			bool xFlip = (OAM[(i * 4) + 3] & 0x20) != 0;
-			bool yFlip = (OAM[(i * 4) + 3] & 0x40) != 0;
-			// OBPnum contains correct pallete bank
-			uint8_t OBPnum = (OAM[(i * 4) + 3] & 0x10) != 0 ? OBP1 : OBP0;
-
-			if (!spriteSize) {
-				sprite = SDL_CreateRGBSurface(0, 8, 8, 32, 0, 0, 0, 0);
-				drawTile(0x8000 + (OAM[(i * 4) + 2] << 4), sprite, 0, 0, 
-					false, xFlip, yFlip, OBPnum);
-			}
-			else {
-				// If y is flipped, 8x16 sprite has to be rendered upside down
-				sprite = SDL_CreateRGBSurface(0, 8, 16, 32, 0, 0, 0, 0);
-				drawTile(0x8000 + ((OAM[(i * 4) + 2] & 0xFE) << 4), sprite, 0, yFlip ? 8 : 0,
-					false, xFlip, yFlip, OBPnum);
-				drawTile(0x8000 + ((OAM[(i * 4) + 2] | 0x01) << 4), sprite, 0, yFlip ? 0 : 8,
-					false, xFlip, yFlip, OBPnum);
-			}
-			// TODO: Flip it or whatever
-			// Put it on main surface
-			SDL_Rect spriteRect;
-			spriteRect.x = (OAM[(i*4)+1] - 8);
-			spriteRect.y = (OAM[(i*4)] - 16);
-			SDL_BlitSurface(sprite, NULL, mainSurface, &spriteRect);
-			SDL_FreeSurface(sprite);
-		}
-	}*/
 	// Render main surface
 	SDL_Texture *tex = SDL_CreateTextureFromSurface(ren, mainSurface);
 	SDL_FreeSurface(mainSurface);
@@ -338,7 +272,7 @@ void GBGPU::drawTile(uint16_t address, SDL_Surface *inSurface, int x, int y, boo
 	uint8_t tile[16];
 
 	for (int i = 0; i < 16; i++) {
-		tile[i] = recieveData(address + i);
+		tile[i] = VRAM[(address - 0x8000) + i];
 	}
 	for (int i = 0; i <= 15; i += 2) {
 		for (int j = 7; j >= 0; j--) {
@@ -448,25 +382,25 @@ void GBGPU::renderBGLine() {
 		uint16_t tileLocation = 0x0000;
 
 		if ((LCDC & 0x08) != 0) {
-			tileLocation = recieveData(0x9C00 + tileNum);
+			tileLocation = VRAM[0x1C00 + tileNum];
 		}
 		else {
-			tileLocation = recieveData(0x9800 + tileNum);
+			tileLocation = VRAM[0x1800 + tileNum];
 		}
 		if ((LCDC & 0x10) != 0) {
-			tileLocation = 0x8000 + (tileLocation << 4);
+			tileLocation = (tileLocation << 4);
 		}
 		else {
 			tileLocation = (128 + (int16_t)tileLocation) & 0xff;
-			tileLocation = 0x8800 + (tileLocation << 4);
+			tileLocation = 0x800 + (tileLocation << 4);
 		}
 
 		// Use simple modulo to get pixel number of tile
 		int pixelX = x % 8;
 		int pixelY = y % 8;
 
-		int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
-			((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
+		int pixelData = ((((VRAM[tileLocation + (pixelY * 2) + 1] >> (7 - pixelX))) & 0x1) << 1) |
+			((((VRAM[tileLocation + (pixelY * 2)] >> (7 - pixelX))) & 0x1));
 
 		lineBuffer[i] = pixelData;
 	}
@@ -494,25 +428,25 @@ void GBGPU::renderWindowLine() {
 			uint16_t tileLocation = 0x0000;
 
 			if ((LCDC & 0x40) != 0) {
-				tileLocation = recieveData(0x9C00 + tileNum);
+				tileLocation = VRAM[0x1C00 + tileNum];
 			}
 			else {
-				tileLocation = recieveData(0x9800 + tileNum);
+				tileLocation = VRAM[0x1800 + tileNum];
 			}
 			if ((LCDC & 0x10) != 0) {
-				tileLocation = 0x8000 + (tileLocation << 4);
+				tileLocation = (tileLocation << 4);
 			}
 			else {
 				tileLocation = (128 + (int16_t)tileLocation) & 0xff;
-				tileLocation = 0x8800 + (tileLocation << 4);
+				tileLocation = 0x800 + (tileLocation << 4);
 			}
 
 			// Use simple modulo to get pixel number of tile
 			int pixelX = x % 8;
 			int pixelY = y % 8;
 
-			int pixelData = ((((recieveData(tileLocation + (pixelY * 2) + 1) >> (7 - pixelX))) & 0x1) << 1) |
-				((((recieveData(tileLocation + (pixelY * 2)) >> (7 - pixelX))) & 0x1));
+			int pixelData = ((((VRAM[tileLocation + (pixelY * 2) + 1] >> (7 - pixelX))) & 0x1) << 1) |
+				((((VRAM[tileLocation + (pixelY * 2)] >> (7 - pixelX))) & 0x1));
 
 			lineBuffer[i] = pixelData;
 		}

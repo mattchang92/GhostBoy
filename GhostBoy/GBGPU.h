@@ -10,7 +10,7 @@ public:
 	~GBGPU();
 	// Data transfer
 	void sendData(uint16_t address, uint8_t data);
-	uint8_t recieveData(uint16_t address);
+	uint8_t receiveData(uint16_t address);
 	// Updates GPU timing
 	void updateGPUTimer(int lastCycleCount);
 	// Called to render the screen

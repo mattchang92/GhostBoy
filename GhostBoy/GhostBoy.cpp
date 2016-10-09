@@ -98,9 +98,7 @@ int main(int argc, char* argv[])
 		vblankCount++;
 		//cout << "Vblank count: " << vblankCount << "\n";
 		gbgpu.newVblank = false;
-		if ((gbgpu.recieveData(0xFF40) & 0x80) != 0/*true*/) {
-			gbgpu.renderScreen(window, ren);
-		}
+		gbgpu.renderScreen(window, ren);
 	}
 
 	// Run gbCart save for fallback
