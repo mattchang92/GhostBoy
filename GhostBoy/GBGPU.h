@@ -1,12 +1,14 @@
 #include "Interrupts.h"
 #include "stdint.h"
 #include "SDL.h"
+#include "Cartridge.h"
+#include "WRAM.h"
 
 #pragma once
 class GBGPU
 {
 public:
-	GBGPU(Interrupts &interrupts);
+	GBGPU(Interrupts &interrupts, Cartridge* gbcart, WRAM &wram, bool CGBmode);
 	~GBGPU();
 	// Data transfer
 	void sendData(uint16_t address, uint8_t data);
@@ -49,8 +51,8 @@ private:
 	};
 
 	// GPU Held memory
-	uint8_t VRAM[0x9FFF - 0x800 + 1] = {};
-	uint8_t OAM[0xFe9F - 0xFE00 + 1] = {};
+	uint8_t VRAM[0x4000] = {};
+	uint8_t OAM[0xA0] = {};
 	//OAMEntry OAMTable[0xFe9F - 0xFE00 + 1] = {};
 	// GPU Registers
 	uint8_t LCDC = 0;
@@ -65,6 +67,23 @@ private:
 	uint8_t WY = 0;
 	uint8_t WX = 0;
 
+	// CGB Registers (a lot of them)
+	bool CGBmode = false;
+	Cartridge* gbCart;
+	WRAM* wram;	// Used for HDMA
+	uint16_t HDMAsrc = 0;
+	uint16_t HDMAdst = 0;
+	uint16_t HDMAlen = 0;	// Also contains mode flag
+	bool HDMAActive;
+	void HDMA();
+	uint8_t cgbBGPaletteIndex = 0;
+	uint8_t cgbBGPalette[0x40] = {};
+	uint8_t cgbSPRPaletteIndex = 0;
+	uint8_t cgbSPRPalette[0x40] = {};
+	uint8_t VRAMBank = 0;
+	bool bgPriorties[160] = { false };
+	
+	
 
 	// Pallete color
 	// Black and white pallete

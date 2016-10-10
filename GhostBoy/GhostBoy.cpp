@@ -45,10 +45,12 @@ int main(int argc, char* argv[])
 	Cartridge* gbCart = Cartridge::getCartridge(romFilePath);
 	Interrupts interrupts;
 	Timer timer(interrupts);
-	GBGPU gbgpu(interrupts);
+	WRAM wram;
+	bool CGBMode = (gbCart->recieveData(0x143) & 0x80) == 0x80;
+	GBGPU gbgpu(interrupts, gbCart, wram, CGBMode);
 	Input input;
 	APU apu;
-	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu);
+	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode);
 	GBCPU CPU (mainMem);
 	// SDL Stuff
 	SDL_Init(SDL_INIT_VIDEO);
@@ -65,11 +67,17 @@ int main(int argc, char* argv[])
 	
 
 	// Check if bootstrap file is present. If it is, load it in, if not, skip the bootstrap.
-	if (mainMem.setBootstrap(ifstream("boot.rom", ios::in | ios::binary | ios::ate))) {
-		CPU.resetGBBios();
+	
+	if (!CGBMode) {
+		if (mainMem.setBootstrap(ifstream("boot.rom", ios::in | ios::binary | ios::ate))) {
+			CPU.resetGBBios();
+		}
+		else {
+			CPU.resetGBNoBios();
+		}
 	}
 	else {
-		CPU.resetGBNoBios();
+		CPU.resetCGBNoBios();
 	}
 
 	// Main loop
@@ -85,9 +93,17 @@ int main(int argc, char* argv[])
 		// Main CPU loop
 		while (!gbgpu.newVblank) {
 			CPU.executeOneInstruction();
-			timer.updateTimers(CPU.getLastCycleCount());
-			gbgpu.updateGPUTimer(CPU.getLastCycleCount());
-			apu.step(CPU.getLastCycleCount());
+			int lastCycleCount = CPU.getLastCycleCount();
+			if (CPU.getDoubleSpeed()) {
+				gbgpu.updateGPUTimer(lastCycleCount/2);
+				apu.step(lastCycleCount/2);
+			}
+			else {
+				gbgpu.updateGPUTimer(lastCycleCount);
+				apu.step(lastCycleCount);
+			}
+			timer.updateTimers(lastCycleCount);
+			
 			
 			//cycleTotal += CPU.getLastCycleCount();
 		}

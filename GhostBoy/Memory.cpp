@@ -3,8 +3,8 @@
 
 
 
-Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu) : gbCart(gbCart), 
-interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu)
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode) :
+	gbCart(gbCart), interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu), wram(&wram), CGBMode(CGBMode)
 {
 }
 
@@ -36,7 +36,7 @@ uint8_t Memory::readByte(uint16_t address)
 	}
 	// RAM
 	else if (address >= 0xC000 && address <= 0xFDFF) {
-		returnVal = RAM[address & 0x1FFF];	// Mask covers echo area too
+		returnVal = wram->recieveData(address);
 	}
 	// Controller
 	else if (address == 0xFF00) {
@@ -61,6 +61,18 @@ uint8_t Memory::readByte(uint16_t address)
 	// GPU registers
 	else if (address >= 0xFF40 && address <= 0xFF4B) {
 		returnVal = gbgpu->receiveData(address);
+	}
+	else if ((address == 0xFF4F || (address >= 0xFF51 && address <= 0xFF55) || 
+		(address >= 0xFF68 && address <= 0xFF6B)) & CGBMode) {
+		returnVal = gbgpu->receiveData(address);
+	}
+	// Key1 (double speed mode)
+	else if (address == 0xFF4D) {
+		returnVal = key1;
+	}
+	// WRAM bank
+	else if (address == 0xFF70 && CGBMode) {
+		returnVal = wram->recieveData(address);
 	}
 	// High RAM area
 	else if (address >= 0xFF80 && address <= 0xFFFE) {
@@ -97,7 +109,7 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	}
 	// RAM
 	else if (address >= 0xC000 && address <= 0xFDFF) {
-		RAM[address & 0x1FFF] = data;	// Mask covers echo area too
+		wram->sendData(address, data);
 	}
 	// Controller
 	else if (address == 0xFF00) {
@@ -124,7 +136,8 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 		apu->sendData(address, data);
 	}
 	// GPU registers
-	else if (address >= 0xFF40 && address <= 0xFF4B) {
+	else if ((address >= 0xFF40 && address <= 0xFF4B) || address == 0xFF4F
+		|| (address >= 0xFF51 && address <= 0xFF55) || (address >= 0xFF68 && address <= 0xFF6B)) {
 		// Inaccurate DMA transfer
 		if (address == 0xFF46) {
 			uint16_t OAMReadAddress = data << 8;
@@ -137,11 +150,17 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 			gbgpu->sendData(address, data);
 		}
 	}
+	else if (address == 0xFF4D) {
+		key1 = data;
+	}
 	// Bootstrap unmap
 	else if (address == 0xFF50) {
 		if (data == 0x1) {
 			bootStrapActive = false;
 		}
+	}
+	else if (address == 0xFF70) {
+		wram->sendData(address, data);
 	}
 	// High RAM area
 	else if (address >= 0xFF80 && address <= 0xFFFE) {

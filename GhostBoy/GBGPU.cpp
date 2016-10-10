@@ -25,7 +25,8 @@
 #define coincidence	0x40
 
 
-GBGPU::GBGPU(Interrupts &interrupts) : interrupts(&interrupts)
+GBGPU::GBGPU(Interrupts &interrupts, Cartridge* gbCart, WRAM &wram, bool CGBmode) : interrupts(&interrupts), gbCart(gbCart),
+	wram(&wram), CGBmode(CGBmode)
 {
 }
 
@@ -37,7 +38,7 @@ GBGPU::~GBGPU()
 void GBGPU::sendData(uint16_t address, uint8_t data) {
 	// TODO: these can't always be written to
 	if (address >= 0x8000 && address <= 0x9FFF) {
-		VRAM[address - 0x8000] = data;
+		VRAM[(address & 0x1FFF)|(VRAMBank << 13)] = data;
 	}
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
 		OAM[address & 0xFF] = data;
@@ -86,13 +87,75 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 				break;
 		}
 	}
+	// VRAM Bank
+	else if (address == 0xFF4F) {
+		VRAMBank = data;
+	}
+	// CGB HDMA
+	else if (address >= 0xFF51 && address <= 0xFF55) {
+		switch (address) {
+		case 0xFF51:
+			HDMAsrc = (HDMAsrc & 0xFF) | (data << 8);
+			break;
+		case 0xFF52:
+			HDMAsrc = (HDMAsrc & 0xFF00) | (data & 0xF0);
+			break;
+		case 0xFF53:
+			HDMAdst = (HDMAdst & 0xFF) | (((data & 0x1F)| 0x80) << 8);
+			break;
+		case 0xFF54:
+			HDMAdst = (HDMAdst & 0xFF00) | (data & 0xF0);
+			break;
+		case 0xFF55:
+			// START DMA
+			HDMAlen = data;
+			if ((HDMAlen & 0x80) != 0x80 && !HDMAActive) {
+				// Instant DMA
+				for (int i = 0; i <= (HDMAlen & 0x7F); i++) {
+					HDMA();
+				}
+				HDMAlen = 0;
+				HDMAActive = false;
+			}
+			else if ((HDMAlen & 0x80) != 0x80 && HDMAActive) {
+				HDMAActive = false;
+			}
+			else {
+				HDMAActive = true;
+			}
+			break;
+		}
+	}
+	// CGB Palette Data
+	else if (address >= 0xFF68 && address <= 0xFF6B) {
+		switch (address) {
+			case 0xFF68:
+				cgbBGPaletteIndex = data;
+				break;
+			case 0xFF69:
+				cgbBGPalette[cgbBGPaletteIndex & 0x3F] = data;
+				if ((cgbBGPaletteIndex & 0x80) == 0x80) {
+					cgbBGPaletteIndex = (cgbBGPaletteIndex + 1) & 0xBF;
+				}
+				break;
+			case 0xFF6A:
+				cgbSPRPaletteIndex = data;
+				break;
+			case 0xFF6B:
+				cgbSPRPalette[cgbSPRPaletteIndex & 0x3F] = data;
+				if ((cgbSPRPaletteIndex & 0x80) == 0x80) {
+					cgbSPRPaletteIndex = (cgbSPRPaletteIndex + 1) & 0xBF;
+				}
+				break;
+		}
+	}
 }
 
 uint8_t GBGPU::receiveData(uint16_t address) {
 	uint8_t returnData = 0;
 
 	if (address >= 0x8000 && address <= 0x9FFF) {
-		returnData = VRAM[address - 0x8000];
+		returnData = VRAM[(address & 0x1FFF) | (VRAMBank << 13)];
 	}
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
 		returnData = OAM[address & 0xFF];
@@ -135,6 +198,47 @@ uint8_t GBGPU::receiveData(uint16_t address) {
 				break;
 			case WXbyte:
 				returnData = WX;
+				break;
+		}
+	}
+	// VRAM Bank
+	else if (address == 0xFF4F) {
+		returnData = VRAMBank;
+	}
+	// CGB HDMA
+	else if (address >= 0xFF51 && address <= 0xFF55) {
+		switch (address) {
+		case 0xFF51:
+			returnData = HDMAsrc >> 8;
+			break;
+		case 0xFF52:
+			returnData = HDMAsrc & 0xFF;
+			break;
+		case 0xFF53:
+			returnData = HDMAdst >> 8;
+			break;
+		case 0xFF54:
+			returnData = HDMAdst & 0xFF;
+			break;
+		case 0xFF55:
+			returnData = (HDMAlen & 0x7F) | (HDMAActive ? 1 : 0) << 7;
+			break;
+		}
+	}
+	// CGB Palette Data
+	else if (address >= 0xFF68 && address <= 0xFF6B) {
+		switch (address) {
+			case 0xFF68:
+				returnData = cgbBGPaletteIndex;
+				break;
+			case 0xFF69:
+				returnData = cgbBGPalette[cgbBGPaletteIndex & 0x3F];
+				break;
+			case 0xFF6A:
+				returnData = cgbSPRPaletteIndex;
+				break;
+			case 0xFF6B:
+				returnData = cgbSPRPalette[cgbSPRPaletteIndex & 0x3F];
 				break;
 		}
 	}
@@ -229,6 +333,14 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					}
 					// Render scanline before going to hblank
 					renderScanline();
+					// Activate HDMA if there's HDMA left
+					if (HDMAActive && (HDMAlen & 0x7F) > 0) {
+						if ((HDMAlen & 0x7F) == 0) {
+							HDMAActive = false;
+						}
+						HDMA();
+						HDMAlen--;
+					}
 				}
 				break;
 			default:
@@ -349,12 +461,12 @@ void GBGPU::renderScanline() {
 	if (LCDC & 0x02) {
 		renderSpriteLine();
 	}
-	else {
+	/*else {
 		// Fill BG colors
 		for (int i = 0; i < 160; i++) {
 			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
 		}
-	}
+	}*/
 
 
 	// Declare BG pixels pointer/array
@@ -362,12 +474,43 @@ void GBGPU::renderScanline() {
 
 	for (int i = 0; i < 160; i++) {
 		int pixelData = lineBuffer[i];
+		if (CGBmode) {
+			// BG
+			uint8_t* table;
+			if ((pixelData & 0x20) == 0x20) {
+				table = cgbBGPalette;
+			}
+			// Sprite
+			else {
+				table = cgbSPRPalette;
+			}
+			uint8_t index = (pixelData & 0x1F) << 1;
+			pixelData = table[index]|((table[index|1]) << 8);
+			pixelData &= 0x7FFF;
+			// Translate the BGR555 value to an RGB888
+			uint8_t red = (pixelData & 0x1F) << 3;
+			//red |= red >> 2;
+			uint8_t green = ((pixelData >> 5) & 0x1F) << 3;
+			//green |= green >> 2;
+			uint8_t blue = ((pixelData >> 10) & 0x1F) << 3;
+			//blue |= blue >> 2;
+			pixelData = blue | (green << 8) | (red << 16);
+			// Write to background surface
+			int drawX = i;
+			int drawY = LY;
+			globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = pixelData;
+		}
+		else {
+			// bgcolor
+			if ((pixelData & 0x4) == 0x4) {
+				pixelData = (BGP >> (2 * (pixelData & 0x3))) & 0x3;
+			}
+			// Write to background surface
+			int drawX = i;
+			int drawY = LY;
+			globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = colors[pixelData];
+		}
 		lineBuffer[i] = 0;
-
-		// Write to background surface
-		int drawX = i;
-		int drawY = LY;
-		globalBGPixels[drawX + (drawY * backgroundGlobal->w)] = colors[pixelData];
 	}
 }
 
@@ -379,13 +522,21 @@ void GBGPU::renderBGLine() {
 		int tileNum = (x / 8) + ((y / 8) * 32);
 
 		// Determine the location in memory of the tile
+		//uint16_t mapLocation = tileNum + ((LCDC & 0x08) != 0) ? 0x1800 : 0x1C00;
+		uint16_t mapLocation = 0x0000;
 		uint16_t tileLocation = 0x0000;
+		uint8_t mapAttributes = 0x00;	// CGB attributes
 
+		// Get tile location
 		if ((LCDC & 0x08) != 0) {
-			tileLocation = VRAM[0x1C00 + tileNum];
+			mapLocation = 0x1C00 + tileNum;
 		}
 		else {
-			tileLocation = VRAM[0x1800 + tileNum];
+			mapLocation = 0x1800 + tileNum;
+		}
+		tileLocation = VRAM[mapLocation];
+		if (CGBmode) {
+			mapAttributes = VRAM[0x2000 | mapLocation];
 		}
 		if ((LCDC & 0x10) != 0) {
 			tileLocation = (tileLocation << 4);
@@ -399,10 +550,29 @@ void GBGPU::renderBGLine() {
 		int pixelX = x % 8;
 		int pixelY = y % 8;
 
+		// CGB Attribute parser
+		if (CGBmode) {
+			if ((mapAttributes & 0x8) == 0x8) {
+				tileLocation |= 0x2000;
+			}
+			if ((mapAttributes & 0x20) == 0x20) {
+				pixelX = 7 - pixelX;
+			}
+			if ((mapAttributes & 0x40) == 0x40) {
+				pixelY = 7 - pixelY;
+			}
+		}
+
 		int pixelData = ((((VRAM[tileLocation + (pixelY * 2) + 1] >> (7 - pixelX))) & 0x1) << 1) |
 			((((VRAM[tileLocation + (pixelY * 2)] >> (7 - pixelX))) & 0x1));
 
-		lineBuffer[i] = pixelData;
+		if (CGBmode) {
+			lineBuffer[i] = pixelData | ((mapAttributes & 0x7) << 2) | 0x20;
+			bgPriorties[i] = (mapAttributes & 0x80) == 0x80;
+		}
+		else {
+			lineBuffer[i] = 0x4 | pixelData;
+		}
 	}
 }
 
@@ -421,17 +591,24 @@ void GBGPU::renderWindowLine() {
 
 	for (int i = 0; i < 160; i++, x++) {
 		// Get the current tile number based on this
-		if (i >= windowX && i < (windowX + 160) && x >= 0) {
+		if (i >= windowX && x >= 0) {
 			int tileNum = (x / 8) + ((y / 8) * 32);
 
 			// Determine the location in memory of the tile
+			uint16_t mapLocation = 0x0000;
 			uint16_t tileLocation = 0x0000;
+			uint8_t mapAttributes = 0x00;	// CGB attributes
 
+			// Get tile location
 			if ((LCDC & 0x40) != 0) {
-				tileLocation = VRAM[0x1C00 + tileNum];
+				mapLocation = 0x1C00 + tileNum;
 			}
 			else {
-				tileLocation = VRAM[0x1800 + tileNum];
+				mapLocation = 0x1800 + tileNum;
+			}
+			tileLocation = VRAM[mapLocation];
+			if (CGBmode) {
+				mapAttributes = VRAM[0x2000 | mapLocation];
 			}
 			if ((LCDC & 0x10) != 0) {
 				tileLocation = (tileLocation << 4);
@@ -445,10 +622,29 @@ void GBGPU::renderWindowLine() {
 			int pixelX = x % 8;
 			int pixelY = y % 8;
 
+			// CGB Attribute parser
+			if (CGBmode) {
+				if ((mapAttributes & 0x8) == 0x8) {
+					tileLocation |= 0x2000;
+				}
+				if ((mapAttributes & 0x20) == 0x20) {
+					pixelX = 7 - pixelX;
+				}
+				if ((mapAttributes & 0x40) == 0x40) {
+					pixelY = 7 - pixelY;
+				}
+			}
+
 			int pixelData = ((((VRAM[tileLocation + (pixelY * 2) + 1] >> (7 - pixelX))) & 0x1) << 1) |
 				((((VRAM[tileLocation + (pixelY * 2)] >> (7 - pixelX))) & 0x1));
 
-			lineBuffer[i] = pixelData;
+			if (CGBmode) {
+				lineBuffer[i] = pixelData | ((mapAttributes & 0x7) << 2) | 0x20;
+				bgPriorties[i] = (mapAttributes & 0x80) == 0x80;
+			}
+			else {
+				lineBuffer[i] = 0x4 | pixelData;
+			}
 		}
 	}
 }
@@ -479,9 +675,10 @@ void GBGPU::renderSpriteLine() {
 
 	if (spriteCount == 0) {
 		// Fill BG colors
+		/*
 		for (int i = 0; i < 160; i++) {
 			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
-		}
+		}*/
 		return;
 	}
 
@@ -505,13 +702,17 @@ void GBGPU::renderSpriteLine() {
 			pixelY = pixelY & 0x7;	// mask the value if it's tall
 		}
 		uint16_t tilePointer = spriteTile << 4;
+		if (CGBmode && (spriteAttributes & 0x8) == 0x8) {
+			tilePointer |= 0x2000;
+		}
 		uint8_t tileByte0 = VRAM[tilePointer + (2*pixelY)];
 		uint8_t tileByte1 = VRAM[tilePointer + (2 * pixelY) + 1];
 
 		// Check if a sprite is already here, mark if that sprite should have priority over this one
 		// Sprites with the same X value are hidden underneath at lower priorities, this should handle that case.
 		int higherPrioritySprite = i;
-		if (spriteSignature[spriteX] >= 0 ) {
+		
+		if (spriteSignature[spriteX] >= 0) {
 			higherPrioritySprite = spriteSignature[spriteX];
 		}
 
@@ -527,9 +728,15 @@ void GBGPU::renderSpriteLine() {
 			// If we can write a pixel here, then write a pixel here
 			uint8_t pixelNum = spriteX + j;
 			// There's probably another way of dealing with priority values ie checking a given sprite on the line's X Value against the currents. Might fix some edge-cases.
-			if (((spriteSignature[pixelNum] != higherPrioritySprite) || spriteLineBuffer[pixelNum] == -1) && (pixelNum) < 160) {
+			// In CGB mode, sprite overlap priority always goes by OAM ordering. IE: 0 sprites are always on top.
+			if ((((spriteSignature[pixelNum] != higherPrioritySprite) && !CGBmode) || spriteLineBuffer[pixelNum] == -1) && (pixelNum) < 160) {
 				if (pixelNumber != 0) {
-					spriteLineBuffer[pixelNum] = (((spriteAttributes & 0x10) ? OBP1 : OBP0) >> (2 * pixelNumber)) & 0x3;
+					if (CGBmode) {
+						spriteLineBuffer[pixelNum] = pixelNumber | ((spriteAttributes & 0x7) << 2);
+					}
+					else {
+						spriteLineBuffer[pixelNum] = (((spriteAttributes & 0x10) ? OBP1 : OBP0) >> (2 * pixelNumber)) & 0x3;
+					}
 				}
 				// Sprite Signature field is stricter, won't be overwritten just because of a transparent pixel
 				if (spriteSignature[pixelNum] != higherPrioritySprite) {
@@ -542,13 +749,13 @@ void GBGPU::renderSpriteLine() {
 	// Line buffer mixing
 	for (int i = 0; i < 160; i++) {
 		// Either the sprite is always in front, or there's a 0 pixel there (meaning 
-		if ((!priorityValues[i] || lineBuffer[i] == 0) && spriteLineBuffer[i] != -1) {
+		if (((!priorityValues[i] && !bgPriorties[i]) || (lineBuffer[i] & 0x3) == 0) && spriteLineBuffer[i] != -1) {
 			lineBuffer[i] = spriteLineBuffer[i];
 		}
-		else {
+		/*else {
 			// Fill BG colors
 			lineBuffer[i] = (BGP >> (2 * lineBuffer[i])) & 0x3;
-		}
+		}*/
 	}
 }
 
@@ -564,5 +771,21 @@ void GBGPU::checkLYC() {
 	}
 	if ((STAT & coincidence) != 0 && (STAT & 0x04) != 0) {
 		interrupts->IF |= (0xE0 | LCDCint);
+	}
+}
+
+void GBGPU::HDMA()
+{
+	// CGB HDMA transfer
+	for (int j = 0; j < 0x10; j++) {
+		// I'm assuming this is affected by VRAM bank?
+		if (HDMAsrc < 0xC000) {
+			sendData(HDMAdst, gbCart->recieveData(HDMAsrc));
+		}
+		else {
+			sendData(HDMAdst, wram->recieveData(HDMAsrc));
+		}
+		HDMAdst++;
+		HDMAsrc++;
 	}
 }

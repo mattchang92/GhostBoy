@@ -9,6 +9,7 @@ public:
 	~GBCPU();
 	void resetGBNoBios();
 	void resetGBBios();
+	void resetCGBNoBios();
 	void executeOneInstruction();
 	//void resetGBWithBios();
 	void test();
@@ -17,6 +18,9 @@ public:
 	static const int cycleCount_CB[];
 	// Function for retrieving last instruciton's cycle count
 	int getLastCycleCount();
+
+	//CGB stuff
+	bool getDoubleSpeed();
 
 private:
 	// Thing
@@ -107,5 +111,8 @@ private:
 	uint8_t RES(uint8_t input, int bit);
 
 	int cycleCounter = 0;
+
+	// CGB Stuff
+	bool doubleSpeed = false;
 };
 

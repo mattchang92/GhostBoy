@@ -279,6 +279,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="WaveChannel.h" />
+    <ClInclude Include="WRAM.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="APU.cpp" />
@@ -298,6 +299,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="WaveChannel.cpp" />
+    <ClCompile Include="WRAM.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

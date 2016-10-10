@@ -122,6 +122,24 @@ void GBCPU::resetGBBios()
 	reg_SP = 0x00;
 }
 
+void GBCPU::resetCGBNoBios()
+{
+	reg_A = 0x11;
+	reg_F = 0x80;
+	reg_B = 0x00;
+	reg_C = 0x00;
+	reg_D = 0xFF;
+	reg_E = 0x56;
+	reg_H = 0x00;
+	reg_L = 0x0D;
+	reg_PC = 0x100;
+	reg_SP = 0xFFFE;
+
+	mainMem->writeByte(0xFF40, 0x91);
+	mainMem->writeByte(0xFF41, 0x81);
+	mainMem->writeByte(0xFF40, 0x91);
+}
+
 void GBCPU::executeOneInstruction() {
 	if (reg_PC == 0x2377) {
 		//printf("break ");
@@ -970,9 +988,18 @@ void GBCPU::decodeExecute(uint8_t instruction) {
 			}
 			break;
 		// STOP
-		case 0x10:
+		case 0x10: {
 			// TODO: Implement this
+			// CGB Double Speed Mode set
+			uint8_t key1 = mainMem->readByte(0xFF4D);
+			if ((key1 & 0x1) == 0x1) {
+				doubleSpeed = !doubleSpeed;
+			}
+			// Clear low bit, report double speed mode on bit 7
+			mainMem->writeByte(0xFF4D, (key1 & 0x7E) | ((doubleSpeed ? 1 : 0) << 7));
+			reg_PC++;
 			break;
+		}
 		// DI
 		case 0xF3:
 			IMEhold = false;
@@ -1882,6 +1909,11 @@ uint8_t GBCPU::RES(uint8_t input, int bit){
 	uint8_t resetBit = ~(1 << bit);
 	uint8_t result = input & resetBit;
 	return result;
+}
+
+bool GBCPU::getDoubleSpeed()
+{
+	return doubleSpeed;
 }
 
 
