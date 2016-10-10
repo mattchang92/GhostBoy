@@ -221,7 +221,7 @@ uint8_t GBGPU::receiveData(uint16_t address) {
 			returnData = HDMAdst & 0xFF;
 			break;
 		case 0xFF55:
-			returnData = (HDMAlen & 0x7F) | (HDMAActive ? 1 : 0) << 7;
+			returnData = (HDMAlen & 0x7F) | (HDMAActive ? 0 : 1) << 7;
 			break;
 		}
 	}
