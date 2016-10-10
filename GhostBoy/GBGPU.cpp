@@ -489,11 +489,11 @@ void GBGPU::renderScanline() {
 			pixelData &= 0x7FFF;
 			// Translate the BGR555 value to an RGB888
 			uint8_t red = (pixelData & 0x1F) << 3;
-			//red |= red >> 2;
+			red |= red >> 5;
 			uint8_t green = ((pixelData >> 5) & 0x1F) << 3;
-			//green |= green >> 2;
+			green |= green >> 5;
 			uint8_t blue = ((pixelData >> 10) & 0x1F) << 3;
-			//blue |= blue >> 2;
+			blue |= blue >> 5;
 			pixelData = blue | (green << 8) | (red << 16);
 			// Write to background surface
 			int drawX = i;
