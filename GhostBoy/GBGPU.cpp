@@ -334,7 +334,7 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					// Render scanline before going to hblank
 					renderScanline();
 					// Activate HDMA if there's HDMA left
-					if (HDMAActive && (HDMAlen & 0x7F) > 0) {
+					if (HDMAActive && (HDMAlen & 0x7F) >= 0) {
 						if ((HDMAlen & 0x7F) == 0) {
 							HDMAActive = false;
 						}
