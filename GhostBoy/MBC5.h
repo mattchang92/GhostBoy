@@ -19,9 +19,9 @@ private:
 	uint8_t* romData;
 	unsigned int romSize;
 	unsigned int ramSize;
-	bool battery;
+	bool battery = false;
 	string batteryPath = "";
-	bool ramNewData;
+	bool ramNewData = false;
 
 	bool ramEnable = false;
 	uint16_t romBankNumber = 0;
