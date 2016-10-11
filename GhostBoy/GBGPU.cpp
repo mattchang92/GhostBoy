@@ -89,7 +89,7 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 	}
 	// VRAM Bank
 	else if (address == 0xFF4F) {
-		VRAMBank = data;
+		VRAMBank = data & 0x1;
 	}
 	// CGB HDMA
 	else if (address >= 0xFF51 && address <= 0xFF55) {
