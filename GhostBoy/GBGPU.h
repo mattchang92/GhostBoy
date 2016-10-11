@@ -73,7 +73,7 @@ private:
 	WRAM* wram;	// Used for HDMA
 	uint16_t HDMAsrc = 0;
 	uint16_t HDMAdst = 0;
-	uint16_t HDMAlen = 0;	// Also contains mode flag
+	uint16_t HDMAlen = 0xFF;	// Also contains mode flag
 	bool HDMAActive;
 	void HDMA();
 	uint8_t cgbBGPaletteIndex = 0;

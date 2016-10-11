@@ -108,16 +108,16 @@ void GBGPU::sendData(uint16_t address, uint8_t data) {
 			break;
 		case 0xFF55:
 			// START DMA
-			HDMAlen = data;
-			if ((HDMAlen & 0x80) != 0x80 && !HDMAActive) {
+			HDMAlen = data & 0x7F;
+			if ((data & 0x80) != 0x80 && !HDMAActive) {
 				// Instant DMA
 				for (int i = 0; i <= (HDMAlen & 0x7F); i++) {
 					HDMA();
 				}
-				HDMAlen = 0;
+				HDMAlen = 0xFF;
 				HDMAActive = false;
 			}
-			else if ((HDMAlen & 0x80) != 0x80 && HDMAActive) {
+			else if ((data & 0x80) != 0x80 && HDMAActive) {
 				HDMAActive = false;
 			}
 			else {
@@ -334,7 +334,7 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 					// Render scanline before going to hblank
 					renderScanline();
 					// Activate HDMA if there's HDMA left
-					if (HDMAActive && (HDMAlen & 0x7F) >= 0) {
+					if (HDMAActive) {
 						if ((HDMAlen & 0x7F) == 0) {
 							HDMAActive = false;
 						}
