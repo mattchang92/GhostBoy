@@ -1,14 +1,15 @@
 # GhostBoy
 
-Personal project to create a DMG Emulator/Interpreter in C++. Mostly to learn about both emulation and C++.
+Personal project to create a DMG/CGB Emulator/Interpreter in C++. Mostly to learn about both emulation and C++.
 
-Currently passes Blargg's CPU Instruction test. A few games play, a lot don't.
 
 Created in Visual Studio 2015. Requires SDL2. SDL2 Directory path defined in $(SDL2_PATH), using a property sheet named "CustomProps.props" which is defined in the gitignore.
 
 https://www.libsdl.org/download-2.0.php
 
 ![](http://i.imgur.com/ds3efI9.png) ![](http://i.imgur.com/xRiNVdP.png)
+
+![](http://i.imgur.com/58DAhhQ.png) ![](http://i.imgur.com/I2uLVil.png)
 
 # License
 
