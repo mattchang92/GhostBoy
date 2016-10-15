@@ -75,14 +75,12 @@ void Timer::updateTimers(int lastCycleCount) {
 	if ((TAC & 0x4) != 0) {
 		TIMACycleCount += lastCycleCount;
 		int clockRateNum = clockRate(TAC & 0x3);
-		if (TIMACycleCount >= clockRateNum) {
+		while (TIMACycleCount >= clockRateNum) {
 			TIMACycleCount -= clockRateNum;
-			if (TIMA == 0xff) {
+			TIMA++;
+			if (TIMA == 0) {
 				TIMA = TMA;
 				interrupts->IF = interrupts->IF | (0xE0 | timerOverflowByte);
-			}
-			else {
-				TIMA++;
 			}
 		}
 	}
