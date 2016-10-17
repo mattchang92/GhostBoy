@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	if (launchError) {
-		cout << "Usage: GhostBoy romfile screenmultiplier\n";
+		cout << "Usage: " << argv[0] << " romfile screenmultiplier\n";
 		exit(-1);
 	}
 
