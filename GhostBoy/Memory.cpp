@@ -3,8 +3,8 @@
 
 
 
-Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode) :
-	gbCart(gbCart), interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu), wram(&wram), CGBMode(CGBMode)
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, LinkCable &linkCable) :
+	gbCart(gbCart), interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu), wram(&wram), CGBMode(CGBMode), linkCable(&linkCable)
 {
 }
 
@@ -45,6 +45,13 @@ uint8_t Memory::readByte(uint16_t address)
 	// OAM
 	else if (address >= 0xFE00 && address <= 0xFE9F) {
 		returnVal = gbgpu->receiveData(address);
+	}
+	// Serial Byte
+	/*else if (address == 0xFF01) {
+		returnVal = serialByte;
+	}*/
+	else if (address >= 0xFF01 && address <= 0xFF02) {
+		returnVal = linkCable->recieveData(address);
 	}
 	// Timer registers
 	else if (address >= 0xFF04 && address <= 0xFF07) {
@@ -120,8 +127,8 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 		gbgpu->sendData(address, data);
 	}
 	// Serial Byte
-	else if (address == 0xFF01) {
-		serialByte = data;
+	else if (address >= 0xFF01 && address <= 0xFF02) {
+		linkCable->sendData(address, data);
 	}
 	// Timer registers
 	else if (address >= 0xFF04 && address <= 0xFF07) {

@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
 		SDL_WINDOW_SHOWN);
 	SDL_Renderer *ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_Event events;
+
+
 	// Creat obbjects
 	Cartridge* gbCart = Cartridge::getCartridge(romFilePath);
 	Interrupts interrupts;
@@ -62,9 +64,10 @@ int main(int argc, char* argv[])
 	WRAM wram;
 	bool CGBMode = (gbCart->recieveData(0x143) & 0x80) == 0x80;
 	GBGPU gbgpu(interrupts, gbCart, wram, CGBMode);
-	Input input;
+	Input input(false);
 	APU apu;
-	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode);
+	LinkCable linkCable(interrupts);
+	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode, linkCable);
 	GBCPU CPU (mainMem);
 
 	int cycleTotal = 0;
@@ -93,9 +96,10 @@ int main(int argc, char* argv[])
 	WRAM wram2;
 	bool CGBMode2 = (gbCart2->recieveData(0x143) & 0x80) == 0x80;
 	GBGPU gbgpu2(interrupts2, gbCart2, wram2, CGBMode2);
-	Input input2;
+	Input input2(true);
 	APU apu2;
-	Memory mainMem2(gbCart2, interrupts2, timer2, gbgpu2, input2, apu2, wram2, CGBMode2);
+	LinkCable linkCable2(interrupts2);
+	Memory mainMem2(gbCart2, interrupts2, timer2, gbgpu2, input2, apu2, wram2, CGBMode2, linkCable2);
 	GBCPU CPU2(mainMem2);
 
 	int cycleTotal2 = 0;
@@ -129,71 +133,47 @@ int main(int argc, char* argv[])
 			}
 		}
 		// Main CPU loop
-		/*while (!gbgpu.newVblank || !gbgpu2.newVblank) {
-			// CPU Execute
-			CPU.executeOneInstruction();
-			CPU2.executeOneInstruction();
-			// Cycle Count
-			int lastCycleCount = CPU.getLastCycleCount();
-			int lastCycleCount2 = CPU2.getLastCycleCount();
-			// Double Speed Check -> GPU and APU update
-			if (CPU.getDoubleSpeed()) {
-				gbgpu.updateGPUTimer(lastCycleCount/2);
-				apu.step(lastCycleCount/2);
+		while (!gbgpu.newVblank || !gbgpu2.newVblank) {
+			if (!gbgpu.newVblank) {
+				CPU.executeOneInstruction();
+				int lastCycleCount = CPU.getLastCycleCount();
+				if (CPU.getDoubleSpeed()) {
+					gbgpu.updateGPUTimer(lastCycleCount / 2);
+					apu.step(lastCycleCount / 2);
+				}
+				else {
+					gbgpu.updateGPUTimer(lastCycleCount);
+					apu.step(lastCycleCount);
+				}
+				timer.updateTimers(lastCycleCount);
+				//cycleTotal += CPU.getLastCycleCount();
 			}
-			else {
-				gbgpu.updateGPUTimer(lastCycleCount);
-				apu.step(lastCycleCount);
+			// GB2
+			if (!gbgpu2.newVblank) {
+				CPU2.executeOneInstruction();
+				int lastCycleCount2 = CPU2.getLastCycleCount();
+				if (CPU2.getDoubleSpeed()) {
+					gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
+					apu2.step(lastCycleCount2 / 2);
+				}
+				else {
+					gbgpu2.updateGPUTimer(lastCycleCount2);
+					apu2.step(lastCycleCount2);
+				}
+				timer2.updateTimers(lastCycleCount2);
+				//cycleTotal += CPU.getLastCycleCount();
 			}
-			if (CPU2.getDoubleSpeed()) {
-				gbgpu2.updateGPUTimer(lastCycleCount / 2);
-				apu2.step(lastCycleCount / 2);
-			}
-			else {
-				gbgpu2.updateGPUTimer(lastCycleCount);
-				apu2.step(lastCycleCount);
-			}
-			// Timer update
-			timer.updateTimers(lastCycleCount);
-			timer2.updateTimers(lastCycleCount);
+			// Link cable check
 			
-			
-			//cycleTotal += CPU.getLastCycleCount();
-		}*/
-		//GB1
-		while (!gbgpu.newVblank) {
-			CPU.executeOneInstruction();
-			int lastCycleCount = CPU.getLastCycleCount();
-			if (CPU.getDoubleSpeed()) {
-				gbgpu.updateGPUTimer(lastCycleCount / 2);
-				apu.step(lastCycleCount / 2);
-			}
-			else {
-				gbgpu.updateGPUTimer(lastCycleCount);
-				apu.step(lastCycleCount);
-			}
-			timer.updateTimers(lastCycleCount);
-
-
-			//cycleTotal += CPU.getLastCycleCount();
 		}
-		// GB2
-		while (!gbgpu2.newVblank) {
-			CPU2.executeOneInstruction();
-			int lastCycleCount2 = CPU2.getLastCycleCount();
-			if (CPU2.getDoubleSpeed()) {
-				gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
-				apu2.step(lastCycleCount2 / 2);
-			}
-			else {
-				gbgpu2.updateGPUTimer(lastCycleCount2);
-				apu2.step(lastCycleCount2);
-			}
-			timer2.updateTimers(lastCycleCount2);
-
-
-			//cycleTotal += CPU.getLastCycleCount();
+		if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
+			uint8_t swapSB = linkCable.getSBout();
+			linkCable.setSBin(linkCable2.getSBout());
+			linkCable2.setSBin(swapSB);
+			linkCable.transferComplete();
+			linkCable2.transferComplete();
 		}
+
 
 		//apu.playSound();	// Play buffered sound?
 		//cout << "Total cycles this frame: " << cycleTotal << "\n";

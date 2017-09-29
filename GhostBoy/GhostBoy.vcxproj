@@ -265,6 +265,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
   <ItemGroup>
     <ClInclude Include="APU.h" />
     <ClInclude Include="AudioHandler.h" />
+    <ClInclude Include="LinkCable.h" />
     <ClInclude Include="Cartridge.h" />
     <ClInclude Include="MBC1.h" />
     <ClInclude Include="GBCPU.h" />
@@ -286,6 +287,7 @@ copy "C:\Users\ghost_000\Documents\SDL2-2.0.4\lib\x86\SDL2.dll" "./SDL2.dll"</Co
   <ItemGroup>
     <ClCompile Include="APU.cpp" />
     <ClCompile Include="AudioHandler.cpp" />
+    <ClCompile Include="LinkCable.cpp" />
     <ClCompile Include="Cartridge.cpp" />
     <ClCompile Include="MBC1.cpp" />
     <ClCompile Include="GBCPU.cpp" />

@@ -4,7 +4,7 @@
 class Input
 {
 public:
-	Input();
+	Input(bool player2);
 	~Input();
 	uint8_t recieveData();
 	void pollControl(uint8_t data);
@@ -12,5 +12,6 @@ public:
 private:
 	uint8_t P1Data;
 	bool controlMode;
+	bool player2;
 };
 
