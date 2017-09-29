@@ -16,7 +16,7 @@ public:
 	// Updates GPU timing
 	void updateGPUTimer(int lastCycleCount);
 	// Called to render the screen
-	void renderScreen(SDL_Window *window, SDL_Renderer *ren);
+	void renderScreen(SDL_Window *window, SDL_Renderer *ren, int x, int y, int w, int h);
 	// Keeps track of a new vblank
 	// Useful for framerate control
 	bool newVblank = false;
@@ -45,6 +45,7 @@ private:
 	void checkLYC();
 	// Cycle Counter
 	int GPUCycleCount = 0;
+	int screenOffCycles = 0;
 	// OAM Table struct
 	struct OAMEntry {
 		uint8_t y, x, tileNum, attributes;

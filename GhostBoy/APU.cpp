@@ -11,11 +11,17 @@ APU::APU()
 	audioSpec.channels = 2;
 	audioSpec.samples = samplesize;	// Adjust as needed
 	audioSpec.callback = NULL;
-	audioSpec.userdata = this;
+	//audioSpec.userdata = this;
 
 	SDL_AudioSpec obtainedSpec;
-	SDL_OpenAudio(&audioSpec, &obtainedSpec);
-	SDL_PauseAudio(0);
+	//SDL_OpenAudio(&audioSpec, &obtainedSpec);
+	//deviceID = 1;
+	deviceID = SDL_OpenAudioDevice(NULL, 0, &audioSpec, &obtainedSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+	if (deviceID == 0) {
+		cout << SDL_GetError() << "\n";
+	}
+	SDL_PauseAudioDevice(deviceID, 0);
+	//AudioHandler::setupAudio();
 }
 
 
@@ -245,6 +251,9 @@ void APU::step(int cycles)
 				bufferin1 = ((float)noiseChannel.getOutputVol()) / 100;
 				SDL_MixAudioFormat((Uint8*)&bufferin0, (Uint8*)&bufferin1, AUDIO_F32SYS, sizeof(float), volume);
 			}
+
+			//AudioHandler::playAudio();
+			// Section below off to play audio
 			mainBuffer[bufferFillAmount + 1] = bufferin0;
 
 			bufferFillAmount += 2;
@@ -252,10 +261,15 @@ void APU::step(int cycles)
 		if (bufferFillAmount >= samplesize) {
 			bufferFillAmount = 0;
 			// Delay execution and the let queue drain to about a frame's worth
-			while ((SDL_GetQueuedAudioSize(1)) > samplesize * sizeof(float)) {
+			while ((SDL_GetQueuedAudioSize(deviceID)) > samplesize * sizeof(float)) {
 				SDL_Delay(1);
 			}
-			SDL_QueueAudio(1, mainBuffer, samplesize*sizeof(float));
+			SDL_QueueAudio(deviceID, mainBuffer, samplesize*sizeof(float));
 		}
 	}
+}
+
+SDL_AudioDeviceID APU::getDeviceId()
+{
+	return deviceID;
 }

@@ -6,6 +6,7 @@
 #include "SquareChannel.h"
 #include "WaveChannel.h"
 #include "NoiseChannel.h"
+#include "AudioHandler.h"
 
 #define samplesize 4096
 
@@ -21,6 +22,7 @@ public:
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
 	void step(int cycles);
+	SDL_AudioDeviceID getDeviceId();
 
 private:
 	// Values OR'd into register reads.
@@ -49,5 +51,7 @@ private:
 	int bufferFillAmount = 0;
 	float mainBuffer[samplesize] = { 0 };
 	uint8_t frameSequencer = 0;
+
+	SDL_AudioDeviceID deviceID;
 };
 

@@ -247,8 +247,9 @@ uint8_t GBGPU::receiveData(uint16_t address) {
 
 void GBGPU::updateGPUTimer(int lastCycleCount) {
 	int mode = STAT & 0x3;
-	GPUCycleCount += lastCycleCount;
 	if ((LCDC & 0x80) != 0/*true*/) {	// I honestly don't know if this is conditional
+		GPUCycleCount += lastCycleCount;
+		screenOffCycles = 0;
 		switch(mode) {
 			// HBlank
 			case 0:
@@ -348,7 +349,14 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 		}	// End of switch case
 	}
 	else {
+		// Still account for frame timings if screen is off
+		screenOffCycles += lastCycleCount;
 		GPUCycleCount = 0;
+		if (screenOffCycles >= 70224) {
+			newVblank = true;
+			screenOffCycles = 0;
+		}
+		//GPUCycleCount = 0;
 		LY = 0;
 		windowLineCounter = 0;
 		mode = 0;	// Set mode to 0 to indicate VRAM is safe
@@ -360,7 +368,7 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 	STAT |= mode;
 }
 
-void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
+void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren, int x, int y, int w, int h) {
 	// Gameboy screen: 160x144
 	// Necessary surfaces
 	//SDL_Surface *mainSurface = SDL_CreateRGBSurface(0, 256, 256, 32, 0, 0, 0, 0);
@@ -372,9 +380,19 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren) {
 	// Render main surface
 	SDL_Texture *tex = SDL_CreateTextureFromSurface(ren, mainSurface);
 	SDL_FreeSurface(mainSurface);
-	SDL_RenderClear(ren);
-	SDL_RenderCopy(ren, tex, NULL, NULL);
-	SDL_RenderPresent(ren);
+	//SDL_RenderClear(ren);
+	// Rectangle
+	SDL_Rect dstrect;
+	dstrect.x = x;
+	dstrect.y = y;
+	dstrect.w = w;
+	dstrect.h = h;
+	//
+	SDL_RenderCopy(ren, tex, NULL, &dstrect);
+	// 2 test
+	/*dstrect.x = x + w + 1;
+	SDL_RenderCopy(ren, tex, NULL, &dstrect);*/
+	//SDL_RenderPresent(ren);
 
 	SDL_DestroyTexture(tex);
 }
