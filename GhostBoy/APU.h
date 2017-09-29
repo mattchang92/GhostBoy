@@ -7,7 +7,7 @@
 #include "WaveChannel.h"
 #include "NoiseChannel.h"
 
-#define samplesize 1024
+#define samplesize 4096
 
 using namespace std;
 

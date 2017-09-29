@@ -4,7 +4,7 @@ Personal project to create a DMG/CGB Emulator/Interpreter in C++. Mostly to lear
 
 Currently passes Blargg's CPU instruction test and instruction timing test. Many games play fine, and sound works.
 
-Created in Visual Studio 2015. Requires SDL2. SDL2 Directory path defined in $(SDL2_PATH), using a property sheet named "CustomProps.props" which is defined in the gitignore.
+Created in Visual Studio 2017. Requires SDL2. SDL2 Directory path defined in $(SDL2_PATH), using a property sheet named "CustomProps.props" which is defined in the gitignore.
 
 https://www.libsdl.org/download-2.0.php
 
