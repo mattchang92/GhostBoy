@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu(interrupts, gbCart, wram, CGBMode);
 	Input input(false);
 	APU apu;
-	LinkCable linkCable(interrupts);
+	LinkCable linkCable(interrupts, CGBMode);
 	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode, linkCable);
 	GBCPU CPU (mainMem);
 
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu2(interrupts2, gbCart2, wram2, CGBMode2);
 	Input input2(true);
 	APU apu2;
-	LinkCable linkCable2(interrupts2);
+	LinkCable linkCable2(interrupts2, CGBMode2);
 	Memory mainMem2(gbCart2, interrupts2, timer2, gbgpu2, input2, apu2, wram2, CGBMode2, linkCable2);
 	GBCPU CPU2(mainMem2);
 
@@ -120,6 +120,10 @@ int main(int argc, char* argv[])
 		CPU2.resetCGBNoBios();
 	}
 	// END COPY
+
+	// Connect the gameboys
+	linkCable.connectDevice(linkCable2);
+	linkCable2.connectDevice(linkCable);
 
 
 	// Main loop
@@ -146,7 +150,11 @@ int main(int argc, char* argv[])
 					apu.step(lastCycleCount);
 				}
 				timer.updateTimers(lastCycleCount);
-				//cycleTotal += CPU.getLastCycleCount();
+				// This is a really dumb sync attempt
+				if (!gbgpu2.newVblank/*true*/) {
+					linkCable.clock(lastCycleCount);
+				}
+				cycleTotal += CPU.getLastCycleCount();
 			}
 			// GB2
 			if (!gbgpu2.newVblank) {
@@ -161,18 +169,29 @@ int main(int argc, char* argv[])
 					apu2.step(lastCycleCount2);
 				}
 				timer2.updateTimers(lastCycleCount2);
-				//cycleTotal += CPU.getLastCycleCount();
+				if (!gbgpu.newVblank/*true*/) {
+					linkCable2.clock(lastCycleCount2);
+				}
+				cycleTotal2 += CPU2.getLastCycleCount();
 			}
-			// Link cable check
-			
 		}
-		if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
+		/*if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
+			for (int i = 0; i < 8; i++) {
+				uint8_t SB = linkCable.getSBout();
+				uint8_t outGoingBit = SB & 0x1;
+				SB >>= 1;
+				SB |= (linkCable2.clockDevice(outGoingBit)) << 7;
+				linkCable.setSBin(SB);
+			}
+			linkCable.transferComplete();
+		}*/
+		/*if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
 			uint8_t swapSB = linkCable.getSBout();
 			linkCable.setSBin(linkCable2.getSBout());
 			linkCable2.setSBin(swapSB);
 			linkCable.transferComplete();
 			linkCable2.transferComplete();
-		}
+		}*/
 
 
 		//apu.playSound();	// Play buffered sound?
@@ -181,6 +200,8 @@ int main(int argc, char* argv[])
 		// Stuff to run after a vblank occurs
 		vblankCount++;
 		vblankCount2++;
+		cycleTotal = 0;
+		cycleTotal2 = 0;
 		//cout << "Vblank count: " << vblankCount << "\n";
 		gbgpu.newVblank = false;
 		gbgpu2.newVblank = false;

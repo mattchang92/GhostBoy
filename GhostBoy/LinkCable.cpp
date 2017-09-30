@@ -1,6 +1,8 @@
 #include "LinkCable.h"
+#include <stdio.h>
+#include <iostream>
 
-LinkCable::LinkCable(Interrupts & interrupts) : interrupts(&interrupts)
+LinkCable::LinkCable(Interrupts &interrupts, bool CGBMode) : interrupts(&interrupts), CGBMode(CGBMode)
 {
 }
 
@@ -14,20 +16,19 @@ void LinkCable::sendData(uint16_t address, uint8_t data)
 		// SB
 		case 0xFF01:
 			SB = data;
+			if (clockCount != 0 && master) {
+				std::cout << "SB Set before transfer finished on master?\n";
+			}
+			if (clockCount != 0 && !master) {
+				std::cout << "SB Set before transfer finished on slave?\n";
+			}
 			break;
 		// SC
 		case 0xFF02:
-			SC = data;
 			// Check if Serial transfer was started
-			if ((SC & 0x80) == 0x80) {
-				transferStart = true;
-			}
-			if ((SC & 0x1) == 0x1) {
-				master = true;
-			}
-			else {
-				master = false;
-			}
+			transferRequest = (data & 0x80) == 0x80;
+			gbcDoubleSpeed = (CGBMode && (data & 0x2) == 0x02);
+			master = (data & 0x1) == 0x1;
 			break;
 	}
 }
@@ -37,21 +38,22 @@ uint8_t LinkCable::recieveData(uint16_t address)
 	uint8_t returnData = 0xFF;
 	switch (address) {
 		// SB
-	case 0xFF01:
-		returnData = SB;
-		break;
+		case 0xFF01:
+			returnData = SB;
+			break;
 		// SC
-	case 0xFF02:
-		returnData = SC;
-		break;
+		case 0xFF02:
+			returnData = ((transferRequest ? 1:0) << 7)| ((gbcDoubleSpeed ? 1 : 0) << 1)| ((master ? 1 : 0));
+			break;
 	}
 	return returnData;
 }
 
+// Bad Stuff
 bool LinkCable::getTransferRequest()
 {
-	bool returnVal = transferStart;
-	transferStart = false;
+	bool returnVal = transferRequest;
+	//transferRequest = false;
 	return returnVal;
 }
 
@@ -59,7 +61,7 @@ void LinkCable::transferComplete()
 {
 	// Interrupt the system
 	interrupts->IF = interrupts->IF | (0xE0 | 0x8);
-	SC &= 0x7F;
+	transferRequest = false;
 }
 
 uint8_t LinkCable::getSBout()
@@ -75,4 +77,82 @@ void LinkCable::setSBin(uint8_t newSB)
 bool LinkCable::getMaster()
 {
 	return master;
+}
+
+// Good stuff
+LinkCable LinkCable::connectDevice(LinkCable &connectedDeviceIn)
+{
+	connectedDevice = &connectedDeviceIn;
+	return *this;
+}
+
+uint8_t LinkCable::clockDevice(uint8_t bit)
+{
+	uint8_t outGoingBit = (SB & 0x80) >> 7;
+	SB <<= 1;
+	SB |= bit;
+	clockCount++;
+	if (clockCount >= 8) {
+		transferComplete();
+		clockCount = 0;
+	}
+
+	// Return our SB bit
+	return outGoingBit;
+}
+
+void LinkCable::clock(int cycles)
+{
+	cpuCycles += cycles;
+	// Amount of CPU cycles depends on bit 1 if this is a Color
+	int cycleLimit = gbcDoubleSpeed ? 256 : 512;
+	// Only clocks if set to master mode and requested a transfer
+	while (cpuCycles >= cycleLimit) {
+		cpuCycles -= cycleLimit;
+		if (master && transferRequest) {
+			uint8_t outGoingBit = (SB & 0x80) >> 7;
+			SB <<= 1;
+			if (connectedDevice != NULL) {
+				SB |= connectedDevice->clockDevice(outGoingBit);
+			}
+			clockCount++;
+			if (clockCount >= 8) {
+				transferComplete();
+				clockCount = 0;
+			}
+		}
+	}
+
+	/*if (master && transferRequest) {
+		for (int i = 0; i < 8; i++) {
+			SB >>= 1;
+			if (connectedDevice != NULL) {
+				uint8_t outGoingBit = SB & 0x1;
+				SB |= (connectedDevice->clockDevice(outGoingBit)) << 7;
+			}
+		}
+		transferComplete();
+	}*/
+
+	/*if (master && transferRequest) {
+		cpuCycles += cycles;
+		int cycleLimit = 512*8;
+		if (cpuCycles >= cycleLimit) {
+			cpuCycles -= cycleLimit;
+			for (int i = 0; i < 8; i++) {
+				uint8_t outGoingBit = SB & 0x1;
+				SB >>= 1;
+				if (connectedDevice != NULL) {
+					SB |= (connectedDevice->clockDevice(outGoingBit)) << 7;
+				}
+			}
+			transferComplete();
+			// Direct swap
+			uint8_t swap = SB;
+			SB = connectedDevice->getSBout();
+			connectedDevice->setSBin(swap);
+			connectedDevice->transferComplete();
+			transferComplete();
+		}
+	}*/
 }
