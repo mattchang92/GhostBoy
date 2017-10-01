@@ -72,6 +72,8 @@ int main(int argc, char* argv[])
 
 	int cycleTotal = 0;
 	int vblankCount = 0;
+
+	int cycleSyncer = 0;
 	
 
 	// Check if bootstrap file is present. If it is, load it in, if not, skip the bootstrap.
@@ -139,38 +141,48 @@ int main(int argc, char* argv[])
 		// Main CPU loop
 		while (!gbgpu.newVblank && !gbgpu2.newVblank) {
 			// GB1
-			CPU.executeOneInstruction();
-			int lastCycleCount = CPU.getLastCycleCount();
-			if (CPU.getDoubleSpeed()) {
-				gbgpu.updateGPUTimer(lastCycleCount / 2);
-				apu.step(lastCycleCount / 2);
+			while (cycleSyncer <= 0) {
+				CPU.executeOneInstruction();
+				int lastCycleCount = CPU.getLastCycleCount();
+				if (CPU.getDoubleSpeed()) {
+					gbgpu.updateGPUTimer(lastCycleCount / 2);
+					apu.step(lastCycleCount / 2);
+					cycleSyncer += lastCycleCount / 2;
+				}
+				else {
+					gbgpu.updateGPUTimer(lastCycleCount);
+					apu.step(lastCycleCount);
+					cycleSyncer += lastCycleCount;
+				}
+				timer.updateTimers(lastCycleCount);
+				linkCable.clock(lastCycleCount);
+				cycleTotal += CPU.getLastCycleCount();
+				// This is the dumbest way of keeping the gameboys in sync I have come up with
 			}
-			else {
-				gbgpu.updateGPUTimer(lastCycleCount);
-				apu.step(lastCycleCount);
-			}
-			timer.updateTimers(lastCycleCount);
-			linkCable.clock(lastCycleCount);
-			cycleTotal += CPU.getLastCycleCount();
 
 			// GB2
-			CPU2.executeOneInstruction();
-			int lastCycleCount2 = CPU2.getLastCycleCount();
-			if (CPU2.getDoubleSpeed()) {
-				gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
-				apu2.step(lastCycleCount2 / 2);
+			while (cycleSyncer >= 0) {
+				CPU2.executeOneInstruction();
+				int lastCycleCount2 = CPU2.getLastCycleCount();
+				if (CPU2.getDoubleSpeed()) {
+					gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
+					apu2.step(lastCycleCount2 / 2);
+					cycleSyncer -= lastCycleCount2 / 2;
+				}
+				else {
+					gbgpu2.updateGPUTimer(lastCycleCount2);
+					apu2.step(lastCycleCount2);
+					cycleSyncer -= lastCycleCount2;
+				}
+				timer2.updateTimers(lastCycleCount2);
+				linkCable2.clock(lastCycleCount2);
+				cycleTotal2 += CPU2.getLastCycleCount();
 			}
-			else {
-				gbgpu2.updateGPUTimer(lastCycleCount2);
-				apu2.step(lastCycleCount2);
-			}
-			timer2.updateTimers(lastCycleCount2);
-			linkCable2.clock(lastCycleCount2);
-			cycleTotal2 += CPU2.getLastCycleCount();
 		}
 		if (gbgpu.newVblank) {
 			gbgpu.renderScreen(window, ren, 0, 0, 160 * screenMultiplier, 144 * screenMultiplier);
 			gbgpu.newVblank = false;
+			cycleTotal = 0;
 			// Only render on GB1 vblank (dumb hack, but other method is pretty laggy)
 			
 		}
@@ -178,6 +190,7 @@ int main(int argc, char* argv[])
 			gbgpu2.renderScreen(window, ren, (160 * screenMultiplier) + 1, 0, 160 * screenMultiplier, 144 * screenMultiplier);
 			gbgpu2.newVblank = false;
 			SDL_RenderPresent(ren);
+			cycleTotal2 = 0;
 		}
 		
 		//cout << "Total cycles this frame: " << cycleTotal << "\n";
