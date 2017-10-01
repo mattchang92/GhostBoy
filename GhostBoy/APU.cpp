@@ -262,6 +262,7 @@ void APU::step(int cycles)
 		if (bufferFillAmount >= samplesize) {
 			bufferFillAmount = 0;
 			// Delay execution and the let queue drain to about a frame's worth
+			while ((SDL_GetQueuedAudioSize(deviceID)) > samplesize * sizeof(float)) {
 				SDL_Delay(1);
 			}
 			SDL_QueueAudio(deviceID, mainBuffer, samplesize*sizeof(float));
