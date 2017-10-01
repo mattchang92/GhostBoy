@@ -137,80 +137,58 @@ int main(int argc, char* argv[])
 			}
 		}
 		// Main CPU loop
-		while (!gbgpu.newVblank || !gbgpu2.newVblank) {
-			if (!gbgpu.newVblank) {
-				CPU.executeOneInstruction();
-				int lastCycleCount = CPU.getLastCycleCount();
-				if (CPU.getDoubleSpeed()) {
-					gbgpu.updateGPUTimer(lastCycleCount / 2);
-					apu.step(lastCycleCount / 2);
-				}
-				else {
-					gbgpu.updateGPUTimer(lastCycleCount);
-					apu.step(lastCycleCount);
-				}
-				timer.updateTimers(lastCycleCount);
-				// This is a really dumb sync attempt
-				if (!gbgpu2.newVblank/*true*/) {
-					linkCable.clock(lastCycleCount);
-				}
-				cycleTotal += CPU.getLastCycleCount();
+		while (!gbgpu.newVblank && !gbgpu2.newVblank) {
+			// GB1
+			CPU.executeOneInstruction();
+			int lastCycleCount = CPU.getLastCycleCount();
+			if (CPU.getDoubleSpeed()) {
+				gbgpu.updateGPUTimer(lastCycleCount / 2);
+				apu.step(lastCycleCount / 2);
 			}
+			else {
+				gbgpu.updateGPUTimer(lastCycleCount);
+				apu.step(lastCycleCount);
+			}
+			timer.updateTimers(lastCycleCount);
+			linkCable.clock(lastCycleCount);
+			cycleTotal += CPU.getLastCycleCount();
+
 			// GB2
-			if (!gbgpu2.newVblank) {
-				CPU2.executeOneInstruction();
-				int lastCycleCount2 = CPU2.getLastCycleCount();
-				if (CPU2.getDoubleSpeed()) {
-					gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
-					apu2.step(lastCycleCount2 / 2);
-				}
-				else {
-					gbgpu2.updateGPUTimer(lastCycleCount2);
-					apu2.step(lastCycleCount2);
-				}
-				timer2.updateTimers(lastCycleCount2);
-				if (!gbgpu.newVblank/*true*/) {
-					linkCable2.clock(lastCycleCount2);
-				}
-				cycleTotal2 += CPU2.getLastCycleCount();
+			CPU2.executeOneInstruction();
+			int lastCycleCount2 = CPU2.getLastCycleCount();
+			if (CPU2.getDoubleSpeed()) {
+				gbgpu2.updateGPUTimer(lastCycleCount2 / 2);
+				apu2.step(lastCycleCount2 / 2);
 			}
+			else {
+				gbgpu2.updateGPUTimer(lastCycleCount2);
+				apu2.step(lastCycleCount2);
+			}
+			timer2.updateTimers(lastCycleCount2);
+			linkCable2.clock(lastCycleCount2);
+			cycleTotal2 += CPU2.getLastCycleCount();
 		}
-		/*if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
-			for (int i = 0; i < 8; i++) {
-				uint8_t SB = linkCable.getSBout();
-				uint8_t outGoingBit = SB & 0x1;
-				SB >>= 1;
-				SB |= (linkCable2.clockDevice(outGoingBit)) << 7;
-				linkCable.setSBin(SB);
-			}
-			linkCable.transferComplete();
-		}*/
-		/*if ((linkCable.getTransferRequest() && linkCable.getMaster()) || (linkCable2.getTransferRequest() && linkCable2.getMaster())) {
-			uint8_t swapSB = linkCable.getSBout();
-			linkCable.setSBin(linkCable2.getSBout());
-			linkCable2.setSBin(swapSB);
-			linkCable.transferComplete();
-			linkCable2.transferComplete();
-		}*/
-
-
-		//apu.playSound();	// Play buffered sound?
+		if (gbgpu.newVblank) {
+			gbgpu.renderScreen(window, ren, 0, 0, 160 * screenMultiplier, 144 * screenMultiplier);
+			gbgpu.newVblank = false;
+			// Only render on GB1 vblank (dumb hack, but other method is pretty laggy)
+			
+		}
+		if (gbgpu2.newVblank) {
+			gbgpu2.renderScreen(window, ren, (160 * screenMultiplier) + 1, 0, 160 * screenMultiplier, 144 * screenMultiplier);
+			gbgpu2.newVblank = false;
+			SDL_RenderPresent(ren);
+		}
+		
 		//cout << "Total cycles this frame: " << cycleTotal << "\n";
 		//cycleTotal = 0;
 		// Stuff to run after a vblank occurs
+		
 		vblankCount++;
 		vblankCount2++;
 		cycleTotal = 0;
 		cycleTotal2 = 0;
-		//cout << "Vblank count: " << vblankCount << "\n";
-		gbgpu.newVblank = false;
-		gbgpu2.newVblank = false;
-		// Clear and Present render outside of the GPU clas
-		// Otherwise, you get flickering
-		SDL_RenderClear(ren);
-		gbgpu.renderScreen(window, ren, 0, 0, 160 * screenMultiplier, 144 * screenMultiplier);
-		gbgpu2.renderScreen(window, ren, (160 * screenMultiplier)+1, 0, 160 * screenMultiplier, 144 * screenMultiplier);
-		SDL_RenderPresent(ren);
+		
 	}
 
 	// Run gbCart save for fallback

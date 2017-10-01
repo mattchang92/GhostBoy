@@ -31,6 +31,7 @@ private:
 	// Renders one scanline of the background (at least for now, not sure about sprites)
 	// Global backgroud image
 	SDL_Surface *backgroundGlobal = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
+	SDL_Surface *mainBuffer = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
 	void renderScanline();
 	// Pixel data holders
 	uint32_t lineBuffer[160] = {};

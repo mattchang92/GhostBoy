@@ -6,7 +6,8 @@ APU::APU()
 {
 	// Set up SDL audio spec
 	SDL_AudioSpec audioSpec;
-	audioSpec.freq = 44100;
+	//audioSpec.freq = 44100;
+	audioSpec.freq = 48000;
 	audioSpec.format = AUDIO_F32SYS;
 	audioSpec.channels = 2;
 	audioSpec.samples = samplesize;	// Adjust as needed
@@ -208,7 +209,7 @@ void APU::step(int cycles)
 		noiseChannel.step();
 
 		if (--downSampleCount <= 0) {
-			downSampleCount = 95;
+			downSampleCount = 87;
 
 			// Left
 			float bufferin0 = 0;
@@ -261,7 +262,6 @@ void APU::step(int cycles)
 		if (bufferFillAmount >= samplesize) {
 			bufferFillAmount = 0;
 			// Delay execution and the let queue drain to about a frame's worth
-			while ((SDL_GetQueuedAudioSize(deviceID)) > samplesize * sizeof(float)) {
 				SDL_Delay(1);
 			}
 			SDL_QueueAudio(deviceID, mainBuffer, samplesize*sizeof(float));

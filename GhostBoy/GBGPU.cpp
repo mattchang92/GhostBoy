@@ -269,6 +269,8 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 						// Activate vblank interrupt too
 						interrupts->IF |= (0xE0 | vblankint);
 						newVblank = true;
+						// Blit to buffer
+						SDL_BlitSurface(backgroundGlobal, NULL, mainBuffer, NULL);
 					}
 					else {
 						mode = 2;
@@ -375,7 +377,7 @@ void GBGPU::renderScreen(SDL_Window *window, SDL_Renderer *ren, int x, int y, in
 	SDL_Surface *mainSurface = SDL_CreateRGBSurface(0, 160, 144, 32, 0, 0, 0, 0);
 	
 	// Copy background surface to the main surface
-	SDL_BlitSurface(backgroundGlobal, NULL, mainSurface, NULL);
+	SDL_BlitSurface(mainBuffer, NULL, mainSurface, NULL);
 
 	// Render main surface
 	SDL_Texture *tex = SDL_CreateTextureFromSurface(ren, mainSurface);
