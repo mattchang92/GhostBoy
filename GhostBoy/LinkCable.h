@@ -2,11 +2,11 @@
 #include "Interrupts.h"
 
 #pragma once
-class LinkCable
+class SerialDevice
 {
 public:
-	LinkCable(Interrupts &interrupts, bool CGBMode);
-	~LinkCable();
+	SerialDevice(Interrupts &interrupts, bool CGBMode);
+	~SerialDevice();
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
 	bool getTransferRequest();
@@ -15,14 +15,14 @@ public:
 	void setSBin(uint8_t newSB);
 	bool getMaster();
 	// More serial methodology
-	LinkCable connectDevice(LinkCable &connectedDevice);	// Returns a pointer to itself
+	SerialDevice connectDevice(SerialDevice &connectedDevice);	// Returns a pointer to itself
 	uint8_t clockDevice(uint8_t bit);
 	void clock(int cycles);
 
 
 private:
 	// SB Should technically interleave between gameboys
-	LinkCable *connectedDevice = NULL;
+	SerialDevice *connectedDevice = NULL;
 	Interrupts *interrupts;
 	uint8_t SB = 0xFF;
 	//uint8_t SC = 0xFF;

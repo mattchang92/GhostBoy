@@ -3,7 +3,7 @@
 
 
 
-Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, LinkCable &linkCable) :
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialDevice &linkCable) :
 	gbCart(gbCart), interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu), wram(&wram), CGBMode(CGBMode), linkCable(&linkCable)
 {
 }
@@ -21,6 +21,9 @@ uint8_t Memory::readByte(uint16_t address)
 		// Return bootstrap data if it's active and we're reading in the bootstrap region.
 		if (bootStrapActive && address < 0x100) {
 			returnVal = bootstrap[address];
+		}
+		else if (bootStrapActive && CGBMode && address >= 0x200 && address <= 0x8FF) {
+			returnVal = bootstrap[address - 0x100];
 		}
 		else {
 			returnVal = gbCart->recieveData(address);
@@ -162,7 +165,7 @@ void Memory::writeByte(uint16_t address, uint8_t data)
 	}
 	// Bootstrap unmap
 	else if (address == 0xFF50) {
-		if (data == 0x1) {
+		if ((data & 0x1) == 0x1) {
 			bootStrapActive = false;
 		}
 	}
@@ -196,23 +199,45 @@ void Memory::writeByteNoProtect(uint16_t address, uint8_t data)
 
 bool Memory::setBootstrap(ifstream bootstrapstream)
 {
-	if (bootstrapstream.is_open()) {
-		if ((int)bootstrapstream.tellg() == 0x100) {
-			bootstrapstream.seekg(0, ios::beg);
-			for (int i = 0; i < 0x100; i++) {
-				char oneByte;
-				bootstrapstream.read((&oneByte), 1);
-				bootstrap[i] = (uint8_t)oneByte;
+	if (!CGBMode) {
+		if (bootstrapstream.is_open()) {
+			if ((int)bootstrapstream.tellg() == 0x100) {
+				bootstrapstream.seekg(0, ios::beg);
+				for (int i = 0; i < 0x100; i++) {
+					char oneByte;
+					bootstrapstream.read((&oneByte), 1);
+					bootstrap[i] = (uint8_t)oneByte;
+				}
+				bootstrapstream.close();
+				bootStrapActive = true;
 			}
-			bootstrapstream.close();
-			bootStrapActive = true;
+			else {
+				bootStrapActive = false;
+			}
 		}
 		else {
 			bootStrapActive = false;
 		}
 	}
 	else {
-		bootStrapActive = false;
+		if (bootstrapstream.is_open()) {
+			if ((int)bootstrapstream.tellg() == 0x800) {
+				bootstrapstream.seekg(0, ios::beg);
+				for (int i = 0; i < 0x800; i++) {
+					char oneByte;
+					bootstrapstream.read((&oneByte), 1);
+					bootstrap[i] = (uint8_t)oneByte;
+				}
+				bootstrapstream.close();
+				bootStrapActive = true;
+			}
+			else {
+				bootStrapActive = false;
+			}
+		}
+		else {
+			bootStrapActive = false;
+		}
 	}
 	return bootStrapActive;
 }

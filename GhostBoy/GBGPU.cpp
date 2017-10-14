@@ -357,6 +357,8 @@ void GBGPU::updateGPUTimer(int lastCycleCount) {
 		if (screenOffCycles >= 70224) {
 			newVblank = true;
 			screenOffCycles = 0;
+			//memset(mainBuffer->pixels, 0x7F, mainBuffer->w * mainBuffer->h * mainBuffer->format->BytesPerPixel);
+			//SDL_memset(mainBuffer->pixels, 0, mainBuffer->h * mainBuffer->pitch);
 		}
 		//GPUCycleCount = 0;
 		LY = 0;

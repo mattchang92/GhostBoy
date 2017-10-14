@@ -12,7 +12,7 @@
 class Memory
 {
 public:
-	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, LinkCable &linkCable);
+	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialDevice &linkCable);
 	~Memory();
 	uint8_t readByte(uint16_t address);
 	uint16_t readWord(uint16_t address);
@@ -31,13 +31,13 @@ private:
 	Input *input;
 	APU *apu;
 	WRAM *wram;
-	LinkCable *linkCable;
+	SerialDevice *linkCable;
 	// Internal arrays and variables
 	//uint8_t tempMem[0xFFFF + 1] = {};	// Temp storage map
 	//uint8_t RAM[0x8000] = {0};			// 8KB RAM 
 	uint8_t highRAM[0x7F] = {0};			// 127 Bytes high-ram
 	bool bootStrapActive = false;
-	uint8_t bootstrap[0x100];
+	uint8_t bootstrap[0x800];
 	uint8_t serialByte;
 	// CGB Stuff
 	uint8_t WRAMBank = 1;	// CGB Double Speed mode switch

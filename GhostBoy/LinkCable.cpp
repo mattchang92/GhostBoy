@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <iostream>
 
-LinkCable::LinkCable(Interrupts &interrupts, bool CGBMode) : interrupts(&interrupts), CGBMode(CGBMode)
+SerialDevice::SerialDevice(Interrupts &interrupts, bool CGBMode) : interrupts(&interrupts), CGBMode(CGBMode)
 {
 }
 
-LinkCable::~LinkCable()
+SerialDevice::~SerialDevice()
 {
 }
 
-void LinkCable::sendData(uint16_t address, uint8_t data)
+void SerialDevice::sendData(uint16_t address, uint8_t data)
 {
 	switch (address) {
 		// SB
@@ -33,7 +33,7 @@ void LinkCable::sendData(uint16_t address, uint8_t data)
 	}
 }
 
-uint8_t LinkCable::recieveData(uint16_t address)
+uint8_t SerialDevice::recieveData(uint16_t address)
 {
 	uint8_t returnData = 0xFF;
 	switch (address) {
@@ -50,58 +50,61 @@ uint8_t LinkCable::recieveData(uint16_t address)
 }
 
 // Bad Stuff
-bool LinkCable::getTransferRequest()
+bool SerialDevice::getTransferRequest()
 {
 	bool returnVal = transferRequest;
 	//transferRequest = false;
 	return returnVal;
 }
 
-void LinkCable::transferComplete()
+void SerialDevice::transferComplete()
 {
 	// Interrupt the system
 	interrupts->IF = interrupts->IF | (0xE0 | 0x8);
 	transferRequest = false;
 }
 
-uint8_t LinkCable::getSBout()
+uint8_t SerialDevice::getSBout()
 {
 	return SB;
 }
 
-void LinkCable::setSBin(uint8_t newSB)
+void SerialDevice::setSBin(uint8_t newSB)
 {
 	SB = newSB;
 }
 
-bool LinkCable::getMaster()
+bool SerialDevice::getMaster()
 {
 	return master;
 }
 
 // Good stuff
-LinkCable LinkCable::connectDevice(LinkCable &connectedDeviceIn)
+SerialDevice SerialDevice::connectDevice(SerialDevice &connectedDeviceIn)
 {
 	connectedDevice = &connectedDeviceIn;
 	return *this;
 }
 
-uint8_t LinkCable::clockDevice(uint8_t bit)
+uint8_t SerialDevice::clockDevice(uint8_t bit)
 {
-	uint8_t outGoingBit = (SB & 0x80) >> 7;
-	SB <<= 1;
-	SB |= bit;
-	clockCount++;
-	if (clockCount >= 8) {
-		transferComplete();
-		clockCount = 0;
+	uint8_t outGoingBit = 0;
+	if (transferRequest) {
+		outGoingBit = (SB & 0x80) >> 7;
+		SB <<= 1;
+		SB |= bit;
+		clockCount++;
+		if (clockCount >= 8) {
+			transferComplete();
+			clockCount = 0;
+		}
 	}
 
 	// Return our SB bit
 	return outGoingBit;
 }
 
-void LinkCable::clock(int cycles)
+void SerialDevice::clock(int cycles)
 {
 	cpuCycles += cycles;
 	// Amount of CPU cycles depends on bit 1 if this is a Color
@@ -114,6 +117,9 @@ void LinkCable::clock(int cycles)
 			SB <<= 1;
 			if (connectedDevice != NULL) {
 				SB |= connectedDevice->clockDevice(outGoingBit);
+			}
+			else {
+				SB |= 1;
 			}
 			clockCount++;
 			if (clockCount >= 8) {

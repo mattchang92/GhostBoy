@@ -12,6 +12,7 @@
 #include "Interrupts.h"
 #include "GBGPU.h"
 #include "APU.h"
+#include "NOMBC.h"
 
 using namespace std;
 
@@ -23,7 +24,44 @@ int main(int argc, char* argv[])
 	int screenMultiplier = 2;
 	// Launch arguments
 	bool launchError = false;
-	if(argc > 2){
+	bool twoGameBoy = false;	// True if two rom files were specified
+
+	// One argument = 1 rom file, no screen size
+	if (argc == 2) {
+		romFilePath = argv[1];
+	}
+
+	// Two arguments = 1 rom file + screen size, or two rom files
+	else if (argc == 3) {
+		romFilePath = argv[1];
+		try {
+			screenMultiplier = stoi(argv[2]);
+		}
+		catch (invalid_argument e) {
+			// Probably another rom file
+			romFilePath2 = argv[2];
+			twoGameBoy = true;
+		}
+	}
+
+	// Three arguments = 2 rom files + screen size
+	else if (argc == 4) {
+		romFilePath = argv[1];
+		romFilePath2 = argv[2];
+		twoGameBoy = true;
+		try {
+			screenMultiplier = stoi(argv[3]);
+		}
+		catch (invalid_argument e) {
+			launchError = true;
+		}
+	}
+
+	else {
+		launchError = true;
+	}
+
+	/*if(argc > 2){
 		romFilePath = argv[1];
 		romFilePath2 = argv[2];
 	}
@@ -37,7 +75,7 @@ int main(int argc, char* argv[])
 		catch (invalid_argument e) {
 			launchError = true;
 		}
-	}
+	}*/
 	if (launchError) {
 		cout << "Usage: " << argv[0] << " romfile screenmultiplier\n";
 		exit(-1);
@@ -49,14 +87,37 @@ int main(int argc, char* argv[])
 		cout << SDL_GetError() << "\n";
 	}
 	SDL_Window *window = 0;
-	window = SDL_CreateWindow("GhostBoy SDL Window",
-		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		(160 * screenMultiplier) * 2 + 1, 144 * screenMultiplier,
-		SDL_WINDOW_SHOWN);
+	// Two GameBoys
+	if (twoGameBoy) {
+		window = SDL_CreateWindow("GhostBoy SDL Window",
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			(160 * screenMultiplier) * 2 + 1, 144 * screenMultiplier,
+			SDL_WINDOW_SHOWN);
+	}
+	// One GameBoy
+	else {
+		window = SDL_CreateWindow("GhostBoy SDL Window",
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			160 * screenMultiplier, 144 * screenMultiplier,
+			SDL_WINDOW_SHOWN);
+	}
 	SDL_Renderer *ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_Event events;
 
-
+	struct GameBoy {
+		Cartridge* gbCart;
+		Interrupts* interrupts = new Interrupts();
+		Timer* timer = new Timer(*interrupts);
+		WRAM* wram = new WRAM();
+		bool CGBMode = (gbCart->recieveData(0x143) & 0x80) == 0x80;
+		GBGPU* gbgpu = new GBGPU(*interrupts, gbCart, *wram, CGBMode);
+		Input* input = new Input(false);
+		APU* apu = new APU();
+		SerialDevice* linkCable = new SerialDevice(*interrupts, CGBMode);
+		Memory* mainMem = new Memory(gbCart, *interrupts, *timer, *gbgpu, *input, *apu, *wram, CGBMode, *linkCable);
+		GBCPU* CPU = new GBCPU(*mainMem);
+	};
+	//GameBoy gameboy1 = { Cartridge::getCartridge(romFilePath) };
 	// Creat obbjects
 	Cartridge* gbCart = Cartridge::getCartridge(romFilePath);
 	Interrupts interrupts;
@@ -66,7 +127,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu(interrupts, gbCart, wram, CGBMode);
 	Input input(false);
 	APU apu;
-	LinkCable linkCable(interrupts, CGBMode);
+	SerialDevice linkCable(interrupts, CGBMode);
 	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode, linkCable);
 	GBCPU CPU (mainMem);
 
@@ -87,12 +148,27 @@ int main(int argc, char* argv[])
 		}
 	}
 	else {
-		CPU.resetCGBNoBios();
+		if (mainMem.setBootstrap(ifstream("bootcgb.rom", ios::in | ios::binary | ios::ate))) {
+			CPU.resetGBBios();
+		}
+		else {
+			CPU.resetCGBNoBios();
+		}
 	}
 
 	// COPY OF THE CODE ABOVE FOR A SECOND GAMEBOY
 	// Creat obbjects
-	Cartridge* gbCart2 = Cartridge::getCartridge(romFilePath2);
+	Cartridge* gbCart2;
+	if (twoGameBoy) {
+		gbCart2 = Cartridge::getCartridge(romFilePath2);
+	}
+	else {
+		// Create a blank NOMBC
+		// These hacks are out of control
+		uint8_t blankRomData[0x8000];
+		memset(blankRomData, 0xFF, 0x8000);
+		gbCart2 = new NOMBC(blankRomData, 0x8000);
+	}
 	Interrupts interrupts2;
 	Timer timer2(interrupts2);
 	WRAM wram2;
@@ -100,7 +176,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu2(interrupts2, gbCart2, wram2, CGBMode2);
 	Input input2(true);
 	APU apu2;
-	LinkCable linkCable2(interrupts2, CGBMode2);
+	SerialDevice linkCable2(interrupts2, CGBMode2);
 	Memory mainMem2(gbCart2, interrupts2, timer2, gbgpu2, input2, apu2, wram2, CGBMode2, linkCable2);
 	GBCPU CPU2(mainMem2);
 
@@ -109,7 +185,6 @@ int main(int argc, char* argv[])
 
 
 	// Check if bootstrap file is present. If it is, load it in, if not, skip the bootstrap.
-
 	if (!CGBMode2) {
 		if (mainMem2.setBootstrap(ifstream("boot.rom", ios::in | ios::binary | ios::ate))) {
 			CPU2.resetGBBios();
@@ -119,13 +194,20 @@ int main(int argc, char* argv[])
 		}
 	}
 	else {
-		CPU2.resetCGBNoBios();
+		if (mainMem2.setBootstrap(ifstream("bootcgb.rom", ios::in | ios::binary | ios::ate))) {
+			CPU2.resetGBBios();
+		}
+		else {
+			CPU2.resetCGBNoBios();
+		}
 	}
 	// END COPY
 
 	// Connect the gameboys
-	linkCable.connectDevice(linkCable2);
-	linkCable2.connectDevice(linkCable);
+	if (twoGameBoy) {
+		linkCable.connectDevice(linkCable2);
+		linkCable2.connectDevice(linkCable);
+	}
 
 
 	// Main loop
@@ -139,9 +221,9 @@ int main(int argc, char* argv[])
 			}
 		}
 		// Main CPU loop
-		while (!gbgpu.newVblank && !gbgpu2.newVblank) {
+		while (!gbgpu.newVblank && (!gbgpu2.newVblank || !twoGameBoy)) {
 			// GB1
-			while (cycleSyncer <= 0) {
+			while (cycleSyncer <= 0 || (!twoGameBoy && !gbgpu.newVblank)) {
 				CPU.executeOneInstruction();
 				int lastCycleCount = CPU.getLastCycleCount();
 				if (CPU.getDoubleSpeed()) {
@@ -161,7 +243,7 @@ int main(int argc, char* argv[])
 			}
 
 			// GB2
-			while (cycleSyncer >= 0) {
+			while (cycleSyncer >= 0 && twoGameBoy) {
 				CPU2.executeOneInstruction();
 				int lastCycleCount2 = CPU2.getLastCycleCount();
 				if (CPU2.getDoubleSpeed()) {
@@ -182,14 +264,13 @@ int main(int argc, char* argv[])
 		if (gbgpu.newVblank) {
 			gbgpu.renderScreen(window, ren, 0, 0, 160 * screenMultiplier, 144 * screenMultiplier);
 			gbgpu.newVblank = false;
+			// Only render when 1st GB vblanks
+			SDL_RenderPresent(ren);
 			cycleTotal = 0;
-			// Only render on GB1 vblank (dumb hack, but other method is pretty laggy)
-			
 		}
 		if (gbgpu2.newVblank) {
 			gbgpu2.renderScreen(window, ren, (160 * screenMultiplier) + 1, 0, 160 * screenMultiplier, 144 * screenMultiplier);
 			gbgpu2.newVblank = false;
-			SDL_RenderPresent(ren);
 			cycleTotal2 = 0;
 		}
 		
