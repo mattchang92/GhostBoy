@@ -1,12 +1,13 @@
-#include <stdint.h>
-#include "Interrupts.h"
+#include "SerialDevice.h"
+#include <iostream>
 
 #pragma once
-class SerialDevice
+class SerialHardware : 
+	public SerialDevice
 {
 public:
-	SerialDevice(Interrupts &interrupts, bool CGBMode);
-	~SerialDevice();
+	SerialHardware(Interrupts &interrupts, bool CGBMode);
+	~SerialHardware();
 	void sendData(uint16_t address, uint8_t data);
 	uint8_t recieveData(uint16_t address);
 	bool getTransferRequest();
@@ -15,14 +16,14 @@ public:
 	void setSBin(uint8_t newSB);
 	bool getMaster();
 	// More serial methodology
-	SerialDevice connectDevice(SerialDevice &connectedDevice);	// Returns a pointer to itself
+	void connectDevice(SerialDevice* connectedDevice);
 	uint8_t clockDevice(uint8_t bit);
 	void clock(int cycles);
 
 
 private:
 	// SB Should technically interleave between gameboys
-	SerialDevice *connectedDevice = NULL;
+	SerialDevice* connectedDevice = NULL;
 	Interrupts *interrupts;
 	uint8_t SB = 0xFF;
 	//uint8_t SC = 0xFF;

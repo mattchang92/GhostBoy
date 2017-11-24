@@ -13,6 +13,8 @@
 #include "GBGPU.h"
 #include "APU.h"
 #include "NOMBC.h"
+#include "Printer.h"
+#include "SerialHardware.h"
 
 using namespace std;
 
@@ -113,7 +115,7 @@ int main(int argc, char* argv[])
 		GBGPU* gbgpu = new GBGPU(*interrupts, gbCart, *wram, CGBMode);
 		Input* input = new Input(false);
 		APU* apu = new APU();
-		SerialDevice* linkCable = new SerialDevice(*interrupts, CGBMode);
+		SerialHardware* linkCable = new SerialHardware(*interrupts, CGBMode);
 		Memory* mainMem = new Memory(gbCart, *interrupts, *timer, *gbgpu, *input, *apu, *wram, CGBMode, *linkCable);
 		GBCPU* CPU = new GBCPU(*mainMem);
 	};
@@ -127,7 +129,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu(interrupts, gbCart, wram, CGBMode);
 	Input input(false);
 	APU apu;
-	SerialDevice linkCable(interrupts, CGBMode);
+	SerialHardware linkCable(interrupts, CGBMode);
 	Memory mainMem (gbCart, interrupts, timer, gbgpu, input, apu, wram, CGBMode, linkCable);
 	GBCPU CPU (mainMem);
 
@@ -176,7 +178,7 @@ int main(int argc, char* argv[])
 	GBGPU gbgpu2(interrupts2, gbCart2, wram2, CGBMode2);
 	Input input2(true);
 	APU apu2;
-	SerialDevice linkCable2(interrupts2, CGBMode2);
+	SerialHardware linkCable2(interrupts2, CGBMode2);
 	Memory mainMem2(gbCart2, interrupts2, timer2, gbgpu2, input2, apu2, wram2, CGBMode2, linkCable2);
 	GBCPU CPU2(mainMem2);
 
@@ -204,9 +206,14 @@ int main(int argc, char* argv[])
 	// END COPY
 
 	// Connect the gameboys
+	Printer gbPrinter;
 	if (twoGameBoy) {
-		linkCable.connectDevice(linkCable2);
-		linkCable2.connectDevice(linkCable);
+		linkCable.connectDevice(&linkCable2);
+		linkCable2.connectDevice(&linkCable);
+	}
+	// Printer test
+	else {
+		linkCable.connectDevice(&gbPrinter);
 	}
 
 

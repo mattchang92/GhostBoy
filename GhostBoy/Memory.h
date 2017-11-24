@@ -6,13 +6,13 @@
 #include "Input.h"
 #include "APU.h"
 #include "WRAM.h"
-#include "LinkCable.h"
+#include "SerialHardware.h"
 
 #pragma once
 class Memory
 {
 public:
-	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialDevice &linkCable);
+	Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialHardware &linkCable);
 	~Memory();
 	uint8_t readByte(uint16_t address);
 	uint16_t readWord(uint16_t address);
@@ -31,7 +31,7 @@ private:
 	Input *input;
 	APU *apu;
 	WRAM *wram;
-	SerialDevice *linkCable;
+	SerialHardware *linkCable;
 	// Internal arrays and variables
 	//uint8_t tempMem[0xFFFF + 1] = {};	// Temp storage map
 	//uint8_t RAM[0x8000] = {0};			// 8KB RAM 

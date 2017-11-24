@@ -3,7 +3,7 @@
 
 
 
-Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialDevice &linkCable) :
+Memory::Memory(Cartridge* gbCart, Interrupts &interrupts, Timer &timer, GBGPU &gbgpu, Input &input, APU &apu, WRAM &wram, bool CGBMode, SerialHardware &linkCable) :
 	gbCart(gbCart), interrupts(&interrupts), timer(&timer), gbgpu(&gbgpu), input(&input), apu(&apu), wram(&wram), CGBMode(CGBMode), linkCable(&linkCable)
 {
 }
